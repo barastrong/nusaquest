@@ -1,0 +1,172 @@
+/* ==============================
+THEME VARIABLES
+============================== */
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8C96A;
+  --gold-dim: rgba(201,168,76,0.12);
+  --green: #2D6A4F;
+  --green-light: #40916C;
+  --red: #B5382A;
+  --batik-dark: url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='96' height='96' fill='none'/%3E%3Cg fill='none' stroke='%23C9A84C' stroke-opacity='0.18' stroke-width='0.9'%3E%3Cellipse cx='48' cy='48' rx='14' ry='8'/%3E%3Cellipse cx='48' cy='48' rx='8' ry='14'/%3E%3Cellipse cx='48' cy='48' rx='9' ry='9'/%3E%3C/g%3E%3Ccircle cx='48' cy='48' r='2.5' fill='%23C9A84C' fill-opacity='0.12'/%3E%3Ccircle cx='48' cy='48' r='0.9' fill='%23C9A84C' fill-opacity='0.24'/%3E%3Cg fill='none' stroke='%23C9A84C' stroke-opacity='0.09' stroke-width='0.6'%3E%3Cellipse cx='0' cy='0' rx='14' ry='8'/%3E%3Cellipse cx='0' cy='0' rx='8' ry='14'/%3E%3Cellipse cx='96' cy='0' rx='14' ry='8'/%3E%3Cellipse cx='96' cy='0' rx='8' ry='14'/%3E%3Cellipse cx='0' cy='96' rx='14' ry='8'/%3E%3Cellipse cx='0' cy='96' rx='8' ry='14'/%3E%3Cellipse cx='96' cy='96' rx='14' ry='8'/%3E%3Cellipse cx='96' cy='96' rx='8' ry='14'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23C9A84C' fill-opacity='0.10'/%3E%3Ccircle cx='96' cy='0' r='1.5' fill='%23C9A84C' fill-opacity='0.10'/%3E%3Ccircle cx='0' cy='96' r='1.5' fill='%23C9A84C' fill-opacity='0.10'/%3E%3Ccircle cx='96' cy='96' r='1.5' fill='%23C9A84C' fill-opacity='0.10'/%3E%3Cg fill='none' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='0.5'%3E%3Cellipse cx='48' cy='0' rx='14' ry='8'/%3E%3Cellipse cx='48' cy='0' rx='8' ry='14'/%3E%3Cellipse cx='48' cy='96' rx='14' ry='8'/%3E%3Cellipse cx='48' cy='96' rx='8' ry='14'/%3E%3Cellipse cx='0' cy='48' rx='14' ry='8'/%3E%3Cellipse cx='0' cy='48' rx='8' ry='14'/%3E%3Cellipse cx='96' cy='48' rx='14' ry='8'/%3E%3Cellipse cx='96' cy='48' rx='8' ry='14'/%3E%3C/g%3E%3Cline x1='34' y1='48' x2='15' y2='48' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='0.5'/%3E%3Cline x1='62' y1='48' x2='81' y2='48' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='0.5'/%3E%3Cline x1='48' y1='34' x2='48' y2='15' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='0.5'/%3E%3Cline x1='48' y1='62' x2='48' y2='81' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='0.5'/%3E%3C/svg%3E");
+  --batik-light: url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='96' height='96' fill='none'/%3E%3Cg fill='none' stroke='%23A0722A' stroke-opacity='0.22' stroke-width='0.9'%3E%3Cellipse cx='48' cy='48' rx='14' ry='8'/%3E%3Cellipse cx='48' cy='48' rx='8' ry='14'/%3E%3Cellipse cx='48' cy='48' rx='9' ry='9'/%3E%3C/g%3E%3Ccircle cx='48' cy='48' r='2.5' fill='%23A0722A' fill-opacity='0.18'/%3E%3Ccircle cx='48' cy='48' r='0.9' fill='%23A0722A' fill-opacity='0.32'/%3E%3Cg fill='none' stroke='%23A0722A' stroke-opacity='0.14' stroke-width='0.7'%3E%3Cellipse cx='0' cy='0' rx='14' ry='8'/%3E%3Cellipse cx='0' cy='0' rx='8' ry='14'/%3E%3Cellipse cx='96' cy='0' rx='14' ry='8'/%3E%3Cellipse cx='96' cy='0' rx='8' ry='14'/%3E%3Cellipse cx='0' cy='96' rx='14' ry='8'/%3E%3Cellipse cx='0' cy='96' rx='8' ry='14'/%3E%3Cellipse cx='96' cy='96' rx='14' ry='8'/%3E%3Cellipse cx='96' cy='96' rx='8' ry='14'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.5' fill='%23A0722A' fill-opacity='0.16'/%3E%3Ccircle cx='96' cy='0' r='1.5' fill='%23A0722A' fill-opacity='0.16'/%3E%3Ccircle cx='0' cy='96' r='1.5' fill='%23A0722A' fill-opacity='0.16'/%3E%3Ccircle cx='96' cy='96' r='1.5' fill='%23A0722A' fill-opacity='0.16'/%3E%3Cg fill='none' stroke='%23A0722A' stroke-opacity='0.10' stroke-width='0.5'%3E%3Cellipse cx='48' cy='0' rx='14' ry='8'/%3E%3Cellipse cx='48' cy='0' rx='8' ry='14'/%3E%3Cellipse cx='48' cy='96' rx='14' ry='8'/%3E%3Cellipse cx='48' cy='96' rx='8' ry='14'/%3E%3Cellipse cx='0' cy='48' rx='14' ry='8'/%3E%3Cellipse cx='0' cy='48' rx='8' ry='14'/%3E%3Cellipse cx='96' cy='48' rx='14' ry='8'/%3E%3Cellipse cx='96' cy='48' rx='8' ry='14'/%3E%3C/g%3E%3Cline x1='34' y1='48' x2='15' y2='48' stroke='%23A0722A' stroke-opacity='0.10' stroke-width='0.5'/%3E%3Cline x1='62' y1='48' x2='81' y2='48' stroke='%23A0722A' stroke-opacity='0.10' stroke-width='0.5'/%3E%3Cline x1='48' y1='34' x2='48' y2='15' stroke='%23A0722A' stroke-opacity='0.10' stroke-width='0.5'/%3E%3Cline x1='48' y1='62' x2='48' y2='81' stroke='%23A0722A' stroke-opacity='0.10' stroke-width='0.5'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] {
+  --bg: #0C0C14;
+  --bg2: #13131E;
+  --bg3: #1C1C2A;
+  --bg4: #252535;
+  --text: #F0EAD6;
+  --text2: rgba(240,234,214,0.6);
+  --text3: rgba(240,234,214,0.38);
+  --border: rgba(201,168,76,0.18);
+  --border2: rgba(255,255,255,0.07);
+  --card-bg: #17172A;
+  --nav-bg: rgba(12,12,20,0.94);
+  --shadow: 0 20px 60px rgba(0,0,0,0.5);
+  --pattern: var(--batik-dark);
+}
+
+[data-theme="light"] {
+  --bg: #FDFAF4;
+  --bg2: #F5EFE4;
+  --bg3: #EDE4D3;
+  --bg4: #E2D5C0;
+  --text: #1A1208;
+  --text2: #5C4425;
+  --text3: #9A7A50;
+  --border: rgba(139,94,32,0.18);
+  --border2: rgba(139,94,32,0.09);
+  --card-bg: #FFFFFF;
+  --nav-bg: rgba(253,250,244,0.96);
+  --shadow: 0 8px 40px rgba(60,35,5,0.10);
+  --pattern: var(--batik-light);
+}
+
+/* ==============================
+BASE
+============================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  background-image: var(--pattern);
+  background-size: 96px 96px;
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+  transition: background .4s, color .4s;
+}
+h1,h2,h3 { font-family: 'Playfair Display', serif; }
+a { text-decoration: none; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+
+/* ==============================
+SECTION COMMON
+============================== */
+.section { padding: 88px 48px; }
+.section-alt { background: var(--bg2); background-image: var(--pattern); background-size: 96px 96px; }
+.section-label {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 14px;
+}
+.section-label::before { content:''; width: 24px; height: 1px; background: var(--gold); }
+.section-title {
+  font-size: clamp(30px, 3.5vw, 46px); font-weight: 800;
+  color: var(--text); line-height: 1.15; margin-bottom: 12px;
+}
+.section-title em { font-style: italic; color: var(--gold); }
+.section-sub { font-size: 15px; color: var(--text2); line-height: 1.7; max-width: 540px; }
+
+.btn-gold {
+  background: var(--gold); color: #1A1408;
+  padding: 14px 32px; border-radius: 8px;
+  font-weight: 700; font-size: 14px;
+  border: none; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: transform .2s, box-shadow .2s;
+  box-shadow: 0 4px 24px rgba(201,168,76,0.3);
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(201,168,76,0.4); }
+.btn-outline {
+  background: transparent; color: var(--text);
+  padding: 13px 28px; border-radius: 8px;
+  font-weight: 600; font-size: 14px;
+  border: 1.5px solid var(--border);
+  cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all .2s;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s, transform .7s; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+footer {
+  padding: 32px 48px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg2);
+}
+.footer-logo { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 800; color: var(--text); }
+.footer-logo span { color: var(--gold); }
+.footer-copy { font-size: 12px; color: var(--text3); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 12px; color: var(--text2); transition: color .2s; }
+.footer-links a:hover { color: var(--gold); }
+[data-theme="light"] .footer-copy { color: var(--text3); }
+[data-theme="light"] .footer-links a { color: var(--text2); }
+
+/* ==============================
+RESPONSIVE - TABLET
+============================== */
+@media (max-width: 1024px) {
+  .section { padding: 64px 32px; }
+  .section-title { font-size: clamp(26px, 4vw, 38px); }
+  .section-sub { font-size: 14px; }
+  footer { padding: 24px 32px; }
+}
+
+/* ==============================
+RESPONSIVE - MOBILE
+============================== */
+@media (max-width: 768px) {
+  .section { padding: 48px 20px; }
+  .section-label { font-size: 10px; gap: 8px; }
+  .section-label::before { width: 20px; }
+  .section-title { font-size: clamp(24px, 6vw, 32px); margin-bottom: 10px; }
+  .section-sub { font-size: 14px; line-height: 1.6; }
+  
+  .btn-gold { padding: 12px 24px; font-size: 13px; }
+  .btn-outline { padding: 11px 22px; font-size: 13px; }
+  
+  footer {
+    padding: 20px;
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .footer-logo { font-size: 16px; }
+  .footer-links { gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .footer-copy { order: 3; }
+}
+
+@media (max-width: 480px) {
+  .section { padding: 40px 16px; }
+  .section-title { font-size: clamp(22px, 7vw, 28px); }
+  .section-sub { font-size: 13px; }
+  
+  .btn-gold { padding: 10px 20px; font-size: 12px; }
+  .btn-outline { padding: 9px 18px; font-size: 12px; }
+  
+  footer { padding: 16px; }
+  .footer-logo { font-size: 15px; }
+  .footer-links a { font-size: 11px; }
+  .footer-copy { font-size: 11px; }
+}

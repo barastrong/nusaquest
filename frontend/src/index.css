@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import './styles/theme.css';
+@import './styles/navbar.css';
+@import './styles/hero.css';
+@import './styles/marquee.css';
+@import './styles/culture.css';
+@import './styles/features.css';
+@import './styles/map.css';
+@import './styles/games.css';
+@import './styles/sections.css';

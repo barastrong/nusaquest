@@ -1,0 +1,346 @@
+.culture-header {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 40px; align-items: end; margin-bottom: 48px;
+}
+.culture-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  grid-template-rows: 260px 220px;
+  gap: 14px;
+}
+.culture-card {
+  border-radius: 14px; overflow: hidden;
+  position: relative; cursor: pointer;
+  transition: transform .3s;
+}
+.culture-card:hover { transform: translateY(-4px); }
+.culture-card.main { grid-row: span 2; }
+.cc-bg {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.cc-bg-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  position: absolute; inset: 0;
+}
+.cc-bg .big-emoji { font-size: 80px; opacity: .18; position: absolute; }
+.cc-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+}
+
+.cc-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; }
+.cc-tag { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+.cc-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #fff; line-height: 1.2; }
+.main .cc-title { font-size: 28px; }
+.cc-sub { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+
+[data-theme="light"] .cc-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+}
+.c1 { background: linear-gradient(135deg, #1A1228,#3D1B5C); }
+.c2 { background: linear-gradient(135deg, #1A100A,#4A2A0A); }
+.c3 { background: linear-gradient(135deg, #0A1A14,#1A4A30); }
+.c4 { background: linear-gradient(135deg, #1A1218,#4A1030); }
+.c5 { background: linear-gradient(135deg, #1A0A0A,#4A1010); }
+
+[data-theme="light"] .c1 { background: linear-gradient(135deg, #EDE0FA,#C9A0E8); }
+[data-theme="light"] .c2 { background: linear-gradient(135deg, #FAF0E0,#E8C080); }
+[data-theme="light"] .c3 { background: linear-gradient(135deg, #E0F5EA,#80C8A0); }
+[data-theme="light"] .c4 { background: linear-gradient(135deg, #FAE0F0,#E880B8); }
+[data-theme="light"] .c5 { background: linear-gradient(135deg, #FAE0E0,#E88080); }
+
+/* ====================================================
+   POPUP MODAL — box diam, isi yang scroll
+   ==================================================== */
+
+/* Overlay gelap di belakang */
+.culture-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Box popup — DIAM, ukuran tetap */
+.culture-modal {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  height: 82vh;
+  max-height: 760px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--card-bg, #1a1a2e);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Hero image (bagian atas, tinggi fixed) ── */
+.modal-hero-img {
+  position: relative;
+  flex-shrink: 0;         /* tidak menyusut */
+  height: 220px;
+  overflow: hidden;
+}
+.modal-hero-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.modal-hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+}
+
+/* Tombol tutup */
+.modal-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+  z-index: 2;
+}
+.modal-close:hover { background: rgba(255,255,255,0.2); }
+
+/* Badge & judul di atas hero */
+.modal-hero-badge {
+  position: absolute;
+  bottom: 46px; left: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold, #d4a843);
+  background: rgba(0,0,0,0.4);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.modal-hero-title {
+  position: absolute;
+  bottom: 16px; left: 20px; right: 20px;
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* ── Body — SATU-SATUNYA bagian yang scroll ── */
+.modal-body {
+  flex: 1;                /* mengisi sisa tinggi */
+  overflow-y: auto;       /* scroll di dalam */
+  overflow-x: hidden;
+  padding: 20px 24px 28px;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar tipis */
+.modal-body::-webkit-scrollbar { width: 4px; }
+.modal-body::-webkit-scrollbar-track { background: transparent; }
+.modal-body::-webkit-scrollbar-thumb {
+  background: var(--border, rgba(255,255,255,0.15));
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+/* ── Meta strip (asal & periode) ── */
+.modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+.modal-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.modal-meta-icon { font-size: 20px; }
+.modal-meta-label {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 2px;
+}
+.modal-meta-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.modal-meta-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--border2);
+}
+
+/* ── Section (deskripsi, galeri, fakta) ── */
+.modal-section { margin-bottom: 22px; }
+.modal-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.modal-section-bar {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--gold, #d4a843);
+  flex-shrink: 0;
+}
+.modal-desc-para {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text2);
+  margin: 0 0 10px;
+}
+.modal-desc-para:last-child { margin-bottom: 0; }
+
+/* ── Galeri ── */
+.modal-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.modal-gallery-img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* ── Fakta chip ── */
+.modal-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.modal-fact-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+.modal-fact-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold, #d4a843);
+  flex-shrink: 0;
+}
+
+/* ── CTA tombol ── */
+.modal-cta {
+  display: flex;
+  gap: 10px;
+  padding-top: 8px;
+}
+.modal-cta .btn-gold,
+.modal-cta .btn-outline {
+  flex: 1;
+  text-align: center;
+}
+
+/* ====================================================
+   RESPONSIVE
+   ==================================================== */
+@media (max-width: 968px) {
+  .culture-header {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .culture-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    gap: 12px;
+  }
+  .culture-card.main {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+  .cc-content { padding: 18px; }
+  .cc-title { font-size: 18px; }
+  .main .cc-title { font-size: 24px; }
+  .culture-modal { height: 88vh; max-height: none; }
+}
+
+@media (max-width: 768px) {
+  .culture-grid { gap: 10px; }
+  .culture-card { min-height: 180px; }
+  .cc-content { padding: 16px; }
+  .cc-title { font-size: 17px; }
+  .main .cc-title { font-size: 22px; }
+}
+
+@media (max-width: 640px) {
+  .culture-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .culture-card.main { grid-column: span 1; }
+  .culture-card { min-height: 200px; }
+  .cc-content { padding: 16px; }
+  .cc-title { font-size: 18px; }
+  .main .cc-title { font-size: 22px; }
+  .cc-tag { font-size: 9px; }
+  .cc-sub { font-size: 10px; }
+
+  .culture-modal-overlay { padding: 12px; }
+  .culture-modal {
+    height: 92vh;
+    border-radius: 16px;
+  }
+  .modal-hero-img { height: 180px; }
+  .modal-hero-title { font-size: 18px; }
+  .modal-body { padding: 16px 18px 24px; }
+  .modal-cta { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+  .culture-card { min-height: 180px; }
+  .cc-content { padding: 14px; }
+  .cc-title { font-size: 16px; }
+  .main .cc-title { font-size: 20px; }
+  .cc-bg .big-emoji { font-size: 60px; }
+
+  .modal-hero-img { height: 160px; }
+  .modal-hero-title { font-size: 16px; bottom: 12px; left: 16px; right: 16px; }
+  .modal-hero-badge { bottom: 40px; left: 16px; }
+  .modal-body { padding: 14px 16px 20px; }
+  .modal-meta { padding: 10px 12px; }
+  .modal-meta-value { font-size: 12px; }
+}

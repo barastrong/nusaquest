@@ -1,0 +1,163 @@
+// Utility untuk mengelola localStorage user data
+
+const STORAGE_KEYS = {
+  USER_DATA: 'nusaquest_user_data',
+  THEME: 'nusaquest_theme',
+};
+
+// Default user data
+const DEFAULT_USER_DATA = {
+  keys: 1, // User dapat 1 key di awal
+  unlockedRegions: [], // Tidak ada region yang unlocked di awal
+  quizScores: {},
+  puzzleScores: {},
+  totalScore: 0,
+  gamesPlayed: 0,
+  completedGames: {}, // { provinceId: ['quiz', 'puzzle'] }
+  claimedRewards: [], // [provinceId]
+};
+
+// Get user data
+export const getUserData = () => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+    
+    if (!data) {
+      console.log('💾 [getUserData] No data found, initializing default:', DEFAULT_USER_DATA);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(DEFAULT_USER_DATA));
+      return { ...DEFAULT_USER_DATA };
+    }
+    
+    const userData = JSON.parse(data);
+    // Ensure all required fields exist
+    const mergedData = { ...DEFAULT_USER_DATA, ...userData };
+    return mergedData;
+  } catch (error) {
+    console.error('❌ [getUserData] Error reading user data:', error);
+    return { ...DEFAULT_USER_DATA };
+  }
+};
+
+// Save user data
+export const saveUserData = (userData) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+    return true;
+  } catch (error) {
+    console.error('❌ [saveUserData] Error saving user data:', error);
+    return false;
+  }
+};
+
+// Update specific field
+export const updateUserData = (updates) => {
+  const currentData = getUserData();
+  const newData = { ...currentData, ...updates };
+  return saveUserData(newData);
+};
+
+// Add keys
+export const addKeys = (amount) => {
+  const userData = getUserData();
+  userData.keys += amount;
+  return saveUserData(userData);
+};
+
+// Unlock region
+export const unlockRegion = (regionId, cost) => {
+  const userData = getUserData();
+  
+  if (userData.keys >= cost && !userData.unlockedRegions.includes(regionId)) {
+    userData.keys -= cost;
+    userData.unlockedRegions.push(regionId);
+    return saveUserData(userData);
+  }
+  
+  console.log(`❌ [unlockRegion] Failed - Insufficient keys or already unlocked`);
+  return false;
+};
+
+// Mark game as completed for a province
+export const markGameCompleted = (provinceId, gameType) => {
+  const userData = getUserData();
+  if (!userData.completedGames) {
+    userData.completedGames = {};
+  }
+  if (!userData.completedGames[provinceId]) {
+    userData.completedGames[provinceId] = [];
+  }
+  if (!userData.completedGames[provinceId].includes(gameType)) {
+    userData.completedGames[provinceId].push(gameType);
+  }
+  return saveUserData(userData);
+};
+
+// Check if user has completed any game for a province
+export const hasCompletedAnyGame = (provinceId) => {
+  const userData = getUserData();
+  const completed = userData.completedGames && userData.completedGames[provinceId];
+  return completed && completed.length > 0;
+};
+
+// Check if reward can be claimed (completed game + not claimed yet)
+export const canClaimReward = (provinceId) => {
+  const userData = getUserData();
+  return hasCompletedAnyGame(provinceId) && !userData.claimedRewards.includes(provinceId);
+};
+
+// Claim province reward
+export const claimProvinceReward = (provinceId, keyReward) => {
+  const userData = getUserData();
+  
+  if (!canClaimReward(provinceId)) {
+    console.log(`❌ [claimProvinceReward] Cannot claim - either not completed or already claimed`);
+    return false;
+  }
+  
+  userData.keys += keyReward;
+  if (!userData.claimedRewards) {
+    userData.claimedRewards = [];
+  }
+  userData.claimedRewards.push(provinceId);
+  return saveUserData(userData);
+};
+
+// Check if reward already claimed
+export const hasClaimedReward = (provinceId) => {
+  const userData = getUserData();
+  return userData.claimedRewards && userData.claimedRewards.includes(provinceId);
+};
+
+// Save quiz score
+export const saveQuizScore = (regionId, score) => {
+  const userData = getUserData();
+  userData.quizScores[regionId] = score;
+  userData.gamesPlayed++;
+  userData.totalScore += score;
+  return saveUserData(userData);
+};
+
+// Save puzzle score
+export const savePuzzleScore = (regionId, score) => {
+  const userData = getUserData();
+  userData.puzzleScores[regionId] = score;
+  userData.gamesPlayed++;
+  userData.totalScore += score;
+  return saveUserData(userData);
+};
+
+// Get theme
+export const getTheme = () => {
+  const theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+  return theme;
+};
+
+// Save theme
+export const saveTheme = (theme) => {
+  localStorage.setItem(STORAGE_KEYS.THEME, theme);
+};
+
+// Reset user data
+export const resetUserData = () => {
+  return saveUserData(DEFAULT_USER_DATA);
+};

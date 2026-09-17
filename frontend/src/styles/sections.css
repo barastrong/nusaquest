@@ -1,0 +1,54 @@
+.quote-section {
+  padding: 72px clamp(20px, 5vw, 48px); text-align: center;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.quote-text {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(22px,3vw,38px); font-style: italic;
+  color: var(--text); line-height: 1.4;
+  max-width: 700px; margin: 0 auto 14px;
+}
+.quote-text span { color: var(--gold); }
+.quote-attr { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--text3); }
+
+.cta-section {
+  padding: 100px clamp(20px, 5vw, 48px); text-align: center;
+  background: var(--bg);
+}
+.cta-title { font-size: clamp(36px,5vw,64px); font-weight: 800; color: var(--text); line-height: 1.1; margin-bottom: 16px; }
+.cta-title em { font-style: italic; color: var(--gold); }
+.cta-sub { font-size: 16px; color: var(--text2); max-width: 420px; margin: 0 auto 36px; line-height: 1.7; }
+[data-theme="light"] .quote-attr { color: var(--text3); }
+[data-theme="light"] .cta-sub { color: var(--text2); }
+
+@media (max-width: 640px) {
+  .quote-section { padding: 48px 20px; }
+  .quote-text { font-size: clamp(18px, 5vw, 22px); }
+  .quote-attr { font-size: 11px; }
+  .cta-section { padding: 60px 20px; }
+  .cta-title { font-size: clamp(28px, 7vw, 36px); }
+  .cta-sub { font-size: 14px; }
+}
+
+@media (max-width: 480px) {
+  .quote-section { padding: 40px 16px; }
+  .quote-text { 
+    font-size: clamp(16px, 6vw, 20px);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .quote-attr { font-size: 10px; }
+  
+  .cta-section { padding: 48px 16px; }
+  .cta-title { 
+    font-size: clamp(24px, 8vw, 32px);
+    margin-bottom: 12px;
+  }
+  .cta-sub { 
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+}
