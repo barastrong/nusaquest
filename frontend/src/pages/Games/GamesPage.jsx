@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
-import { provinceDetailData } from '../../data/provinceDetailData';
+import { provinceApi } from '../../services/api';
 import { getUserData } from '../../utils/localStorage';
 import '../../styles/games.css';
 
@@ -10,25 +10,41 @@ export default function GamesPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [activeGame, setActiveGame] = useState(null);
+  const [province, setProvince] = useState(null);
 
   // Scroll to top on mount
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
 
-  // Province-locked mode with route protection
-  const province = slug ? provinceDetailData.find(p => p.slug === slug) : null;
-  
-  // Check if province is unlocked when slug is provided
+  // Check unlock and fetch province data
   useEffect(() => {
-    if (slug && province) {
-      const userData = getUserData();
-      const isUnlocked = userData.unlockedRegions.includes(slug);
-      
-      if (!isUnlocked) {
-        // Province is locked, redirect to map
-        navigate('/map-games');
+    if (!slug) return;
+
+    const userData = getUserData();
+    const isUnlocked = userData.unlockedRegions.includes(slug);
+    if (!isUnlocked) {
+      navigate('/map-games');
+      return;
+    }
+
+    let isMounted = true;
+    async function fetchProvince() {
+      try {
+        const res = await provinceApi.getBySlug(slug);
+        if (isMounted && res?.data) {
+          setProvince({
+            ...res.data,
+            heroImage: res.data.hero_image || res.data.heroImage,
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to fetch province from API:', err.message);
       }
     }
-  }, [slug, province, navigate]);
+
+    fetchProvince();
+    return () => { isMounted = false; };
+  }, [slug, navigate]);
 
   // Reveal animation on scroll
   useEffect(() => {

@@ -39,9 +39,8 @@ export default function Navbar() {
     setTheme(newTheme);
     saveTheme(newTheme);
   };
-  const toggleMenu  = () => setIsMenuOpen(v => !v);
+  const toggleMenu = () => setIsMenuOpen(v => !v);
 
-  // Scroll ke section di landing page
   const scrollToSection = (sectionId, linkName) => {
     setActiveLink(linkName);
     setIsMenuOpen(false);
@@ -66,7 +65,7 @@ export default function Navbar() {
       <nav className={`${scrolled ? 'scrolled' : ''} ${isMenuOpen ? 'menu-open' : ''}`}>
 
         <div className="nav-logo" onClick={() => handleNavigation('/', 'home')}>
-          Nusa<span>Explore</span>
+          Nusa<span>Quest</span>
         </div>
 
         <div className="nav-divider" />
@@ -95,6 +94,12 @@ export default function Navbar() {
             onClick={() => handleNavigation('/map-games', 'games')}
           >
             Games
+          </button>
+          <button
+            className={`nav-btn ${activeLink === 'admin' ? 'active' : ''}`}
+            onClick={() => handleNavigation('/admin', 'admin')}
+          >
+            Admin
           </button>
           <button
             className="nav-btn primary"

@@ -1,29 +1,53 @@
 import { useState, useEffect } from 'react';
 import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw } from 'react-icons/fi';
-import { getQuizForProvince, quizData } from '../../data/quizData';
+import { ClipLoader } from 'react-spinners';
+import { gameApi } from '../../services/api';
 import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData } from '../../utils/localStorage';
 import { getDifficultyInfo } from './MapPage';
 
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
-  const questions = provinceSlug
-    ? getQuizForProvince(provinceSlug)
-    : quizData.filter(q => q.province === 'general').slice(0, 10);
-  const PASS_THRESHOLD = Math.ceil(questions.length * 0.6);
-
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [qIdx, setQIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState(false);
   const [finished, setFinished] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [rewardToast, setRewardToast] = useState(null); // { keys, total }
+  const [rewardToast, setRewardToast] = useState(null);
   const [alreadyClaimed] = useState(() => provinceSlug ? hasClaimedReward(provinceSlug) : false);
 
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setLoading(true);
 
-  const currentQuestion = questions[qIdx];
+    let isMounted = true;
+    async function fetchQuizzes() {
+      try {
+        const res = await gameApi.getQuizzes(provinceSlug || 'general');
+        if (isMounted && res.data && res.data.length > 0) {
+          const mapped = res.data.map(q => ({
+            q: q.question,
+            opts: q.options,
+            ans: q.answer_index,
+          }));
+          setQuestions(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to fetch quiz from API:', err.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    fetchQuizzes();
+    return () => { isMounted = false; };
+  }, [provinceSlug]);
+
+  const PASS_THRESHOLD = Math.ceil(questions.length * 0.6);
+  const currentQuestion = questions[qIdx] || null;
 
   const handleAnswer = (i) => {
-    if (answered) return;
+    if (answered || !currentQuestion) return;
     setAnswered(true);
     setSelectedAnswer(i);
     const correct = i === currentQuestion.ans;
@@ -37,7 +61,6 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
 
         if (provinceSlug) {
           markGameCompleted(provinceSlug, 'quiz');
-          // Auto-claim jika lulus dan belum pernah klaim
           if (passed && !hasClaimedReward(provinceSlug)) {
             const { keyReward } = getDifficultyInfo(provinceSlug);
             const success = claimProvinceReward(provinceSlug, keyReward);
@@ -70,7 +93,6 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   if (finished) {
     return (
       <div className="quiz-game show">
-        {/* Toast popup kanan atas */}
         {rewardToast && (
           <div className="reward-toast-popup">
             <FiKey className="rtp-icon" />
@@ -113,6 +135,24 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
             <button className="result-btn" onClick={onBack}>Kembali</button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="quiz-game show" style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <ClipLoader color="#f7b24f" size={50} />
+        <p style={{ marginTop: '16px', color: '#9ca3af' }}>Memuat Soal Quiz...</p>
+      </div>
+    );
+  }
+
+  if (!currentQuestion || questions.length === 0) {
+    return (
+      <div className="quiz-game show" style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <p style={{ color: '#ef4444', marginBottom: '16px' }}>Belum ada soal quiz untuk provinsi ini.</p>
+        <button className="result-btn" onClick={onBack}>Kembali</button>
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
-import { provinceDetailData } from '../../data/provinceDetailData';
+import { provinceApi } from '../../services/api';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import { FiKey, FiCheckCircle, FiLock } from 'react-icons/fi';
 import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData } from '../../utils/localStorage';
@@ -20,33 +20,45 @@ export default function DetailMapPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     setLoading(true);
-    
-    const timer = setTimeout(() => {
-      const foundProvince = provinceDetailData.find(
-        p => p.slug === name || p.name.toLowerCase().replace(/\s+/g, '-') === name
-      );
-      
-      if (foundProvince) {
-        // Check if province is unlocked
-        const userData = getUserData();
-        const isUnlocked = userData.unlockedRegions.includes(name);
-        
-        if (!isUnlocked) {
-          // Province is locked, redirect to map
-          navigate('/map-games');
+    let isMounted = true;
+
+    async function loadData() {
+      // 1. Check unlock status
+      const userData = getUserData();
+      const isUnlocked = userData.unlockedRegions.includes(name);
+
+      if (!isUnlocked) {
+        navigate('/map-games');
+        return;
+      }
+
+      // 2. Fetch from API
+      try {
+        const res = await provinceApi.getBySlug(name);
+        if (isMounted && res?.data) {
+          const apiProv = {
+            ...res.data,
+            region: res.data.region || res.data.region_id,
+            heroImage: res.data.hero_image || res.data.heroImage,
+          };
+          setProvince(apiProv);
+          setClaimed(hasClaimedReward(name));
+          setCanClaim(canClaimReward(name));
+          setLoading(false);
           return;
         }
-        
-        setProvince(foundProvince);
-        setClaimed(hasClaimedReward(name));
-        setCanClaim(canClaimReward(name));
-      } else {
-        navigate('/map-games');
+      } catch (err) {
+        console.error('Failed to load province from API:', err.message);
       }
-      setLoading(false);
-    }, 1500);
-    
-    return () => clearTimeout(timer);
+
+      if (isMounted) {
+        navigate('/map-games');
+        setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => { isMounted = false; };
   }, [name, navigate]);
 
   // Reveal animation on scroll

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
-import { regionData, regionToIslandMap } from '../../data/regionData';
 import MapSVG from '../../components/Map/MapSVG';
 import RegionPopup from '../../components/Map/RegionPopup';
 import '../../styles/map.css';
@@ -18,8 +17,6 @@ export default function MapPage() {
   const [zoomCenterY, setZoomCenterY] = useState(170);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
-  
-  const selectedRegion = selectedRegionId ? regionData[regionToIslandMap[selectedRegionId]] : null;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -50,34 +47,19 @@ export default function MapPage() {
   };
 
   const handleRegionClick = (regionId, regionName, centerX, centerY) => {
-    // Jika sudah ada region yang dipilih, jangan izinkan klik region lain
-    if (isRegionSelected) {
-      console.log('Region already selected. Click ignored.');
-      return;
-    }
-    
-    console.log('=== MAP PAGE - REGION CLICKED ===');
-    console.log('Region ID:', regionId);
-    console.log('Region Name:', regionName);
-    console.log('Center X:', centerX);
-    console.log('Center Y:', centerY);
-    
     setSelectedRegionId(regionId);
     setSelectedRegionName(regionName);
     setIsRegionSelected(true);
-    
-    console.log('State updated - selectedRegionName:', regionName);
-    console.log('State updated - isRegionSelected: true');
-    
+
     // Smooth zoom dengan center ke region yang diklik
     const targetZoom = 2.5;
     const viewBoxCenterX = 403.5; // Center of viewBox (-10 to 807) = (807 - 10) / 2 = 403.5
     const viewBoxCenterY = 170; // Center of viewBox (0 to 340) = 340 / 2 = 170
-    
+
     // Hitung offset untuk center ke region
     const offsetX = (viewBoxCenterX - centerX) / targetZoom;
     const offsetY = (viewBoxCenterY - centerY) / targetZoom;
-    
+
     setZoom(targetZoom);
     setZoomCenterX(centerX);
     setZoomCenterY(centerY);
@@ -127,8 +109,8 @@ export default function MapPage() {
         </div>
       </div>
 
-      {selectedRegion && selectedRegionName && (
-        <RegionPopup 
+      {isRegionSelected && selectedRegionName && (
+        <RegionPopup
           regionName={selectedRegionName}
           onClose={closeDetail}
         />

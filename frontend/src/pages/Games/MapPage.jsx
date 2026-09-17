@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
-import { regionData, regionToIslandMap } from '../../data/regionData';
 import { getUserData, unlockRegion as unlockRegionLS } from '../../utils/localStorage';
 import MapSVG from './/Map/MapSVG';
 import RegionPopup from './Map/RegionPopup';
@@ -62,8 +61,6 @@ export default function MapPage() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [unlockAnim, setUnlockAnim] = useState(null); // { name, difficulty, color }
 
-  const selectedRegion = selectedRegionId ? regionData[regionToIslandMap[selectedRegionId]] : null;
-
   // Load from localStorage on mount
   useEffect(() => {
     const data = getUserData();
@@ -93,11 +90,10 @@ export default function MapPage() {
   };
 
   const handleRegionClick = (regionId, regionName, centerX, centerY) => {
-    if (isRegionSelected) {
-      console.log('Region already selected. Click ignored.');
-      return;
-    }
-    
+    // Reset locked popup if open
+    setLockedRegionNamePopup(null);
+    setLockedRegionIdPopup(null);
+
     setSelectedRegionId(regionId);
     setSelectedRegionName(regionName);
     setIsRegionSelected(true);
@@ -112,11 +108,6 @@ export default function MapPage() {
   };
 
   const handleLockedRegionClick = (regionId, regionName) => {
-    if (isRegionSelected) {
-      console.log('Region already selected. Click ignored.');
-      return;
-    }
-    
     const { unlockCost } = getDifficultyInfo(regionId);
     setSelectedRegionName(null);
     setSelectedRegionId(null);
@@ -274,7 +265,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      {selectedRegion && selectedRegionName && (
+      {isRegionSelected && selectedRegionId && selectedRegionName && (
         <RegionPopup
           regionName={selectedRegionName}
           regionId={selectedRegionId}

@@ -7,30 +7,11 @@ import '../../styles/puzzle.css';
 
 const GRID = 3; // 3×3 = 9 kepingan — gambar lebih jelas, tidak terpotong
 
-const PROVINCE_PUZZLES = {
-  'aceh':             ['/images/provinces/aceh-hero.jpg', '/images/culture/Aceh/aceh-1.jpg', '/images/culture/Aceh/aceh-2.jpg'],
-  'sumatera-utara':   ['/images/provinces/sumut-hero.jpg', '/images/culture/Sumatra_Utara/sumut-1.jpg', '/images/culture/Sumatra_Utara/sumut-2.jpg'],
-  'sumatera-barat':   ['/images/provinces/sumbar-hero.jpg', '/images/culture/Sumatra_Barat/sumbar-1.jpg', '/images/culture/Sumatra_Barat/sumbar-2.jpg'],
-  'riau':             ['/images/provinces/riau-hero.jpg', '/images/culture/Riau/riau-1.jpg', '/images/culture/Riau/riau-2.jpg'],
-  'kepulauan-riau':   ['/images/provinces/kepri-hero.jpg', '/images/culture/Kepulauan_Riau/kepri-1.jpg', '/images/culture/Kepulauan_Riau/kepri-2.jpg'],
-  'dki-jakarta':      ['/images/provinces/jakarta-hero.jpg', '/images/culture/Jakarta/jkt-1.jpg', '/images/culture/Jakarta/jkt-2.jpg'],
-  'jawa-barat':       ['/images/provinces/jabar-hero.jpg', '/images/culture/Jawa_Barat/jabar-1.jpg', '/images/culture/Jawa_Barat/jabar-2.jpg'],
-  'banten':           ['/images/provinces/banten-hero.jpg', '/images/culture/Banten/banten-1.jpg', '/images/culture/Banten/banten-2.jpg'],
-  'jawa-tengah':      ['/images/provinces/jateng-hero.jpg', '/images/culture/Jawa_Tengah/jateng-1.jpg', '/images/culture/Jawa_Tengah/jateng-2.jpg'],
-  'yogyakarta':       ['/images/provinces/jogja-hero.jpg', '/images/culture/Jogja/jogja-1.jpg', '/images/culture/Jogja/jogja-2.jpg'],
-  'jawa-timur':       ['/images/provinces/jatim-hero.jpg', '/images/culture/Jawa_Timur/jatim-1.jpg', '/images/culture/Jawa_Timur/jatim-2.jpg'],
-  'bali':             ['/images/provinces/bali-hero.jpg', '/images/culture/Bali/bali-1.jpg', '/images/culture/Bali/bali-2.jpg'],
-  'sulawesi-selatan': ['/images/provinces/sulsel-hero.jpg', '/images/culture/Sulawesi_Selatan/sulsel-1.jpg', '/images/culture/Sulawesi_Selatan/sulsel-2.jpg'],
-  'maluku':           ['/images/provinces/maluku-hero.jpg', '/images/culture/Maluku/maluku-1.jpg', '/images/culture/Maluku/maluku-2.jpg'],
-  'papua':            ['/images/provinces/papua-hero.jpg', '/images/culture/Papua/papua-1.jpg', '/images/culture/Papua/papua-2.jpg'],
-};
-
-const FALLBACK = ['/images/provinces/bali-hero.jpg', '/images/provinces/jabar-hero.jpg', '/images/provinces/jatim-hero.jpg'];
-
-function getPuzzleImages(slug) {
-  if (slug && PROVINCE_PUZZLES[slug]) return PROVINCE_PUZZLES[slug];
-  return FALLBACK;
-}
+const DEFAULT_PUZZLES = [
+  '/images/provinces/bali-hero.jpg',
+  '/images/provinces/jabar-hero.jpg',
+  '/images/provinces/jatim-hero.jpg'
+];
 
 export default function PuzzleGame({ onBack, provinceSlug, province }) {
   const navigate = useNavigate();
@@ -42,7 +23,22 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
   const dropTargetRef = useRef(null);
   const sizeRef = useRef({ w: 480, h: 360, pw: 120, ph: 90 });
 
-  const puzzleImages = getPuzzleImages(provinceSlug);
+  // Use dynamic images from province if available (hero + cultures/tourism/culinary)
+  const dynamicImages = [];
+  if (province) {
+    if (province.hero_image || province.heroImage) dynamicImages.push(province.hero_image || province.heroImage);
+    if (Array.isArray(province.culture)) {
+      province.culture.forEach(c => { if (c.image) dynamicImages.push(c.image); });
+    }
+    if (Array.isArray(province.tourism)) {
+      province.tourism.forEach(t => { if (t.image) dynamicImages.push(t.image); });
+    }
+    if (Array.isArray(province.culinary)) {
+      province.culinary.forEach(c => { if (c.image) dynamicImages.push(c.image); });
+    }
+  }
+
+  const puzzleImages = dynamicImages.length > 0 ? dynamicImages : DEFAULT_PUZZLES;
   const TOTAL_ROUNDS = puzzleImages.length;
 
   const [round, setRound] = useState(0);
