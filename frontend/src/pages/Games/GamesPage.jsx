@@ -54,7 +54,7 @@ export default function GamesPage() {
     }, { threshold: 0.12 });
     reveals.forEach(r => obs.observe(r));
     return () => obs.disconnect();
-  }, []);
+  }, [activeGame, province]);
 
   const handleBack = () => {
     if (activeGame) {
