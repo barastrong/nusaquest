@@ -117,44 +117,6 @@ export default function Navbar() {
           >
             Mulai Jelajah
           </button>
-
-          {/* Auth button on mobile */}
-          {!user ? (
-            <button
-              className="nav-btn theme-btn-mobile"
-              onClick={() => {
-                setIsMenuOpen(false);
-                openAuthModal('login');
-              }}
-            >
-              🔑 Masuk / Daftar
-            </button>
-          ) : (
-            <>
-              <button
-                className="nav-btn theme-btn-mobile"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  openHistoryModal();
-                }}
-              >
-                📜 Riwayat Game
-              </button>
-              <button
-                className="nav-btn theme-btn-mobile"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  logout();
-                }}
-              >
-                🚪 Keluar ({user.display_name || user.username})
-              </button>
-            </>
-          )}
-
-          <button className="nav-btn theme-btn-mobile" onClick={toggleTheme}>
-            {theme === 'dark' ? '🌙 Mode Terang' : '☀️ Mode Gelap'}
-          </button>
         </div>
 
         {/* User Auth Section (Desktop) */}

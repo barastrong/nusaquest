@@ -17,7 +17,6 @@ export default function AuthModal() {
 
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regDisplayName, setRegDisplayName] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -31,7 +30,6 @@ export default function AuthModal() {
     setPassword('');
     setRegUsername('');
     setRegEmail('');
-    setRegDisplayName('');
     setRegPassword('');
   };
 
@@ -62,7 +60,7 @@ export default function AuthModal() {
       await register({
         username: regUsername,
         email: regEmail,
-        displayName: regDisplayName,
+        displayName: regUsername,
         password: regPassword,
       });
       resetForm();
@@ -172,17 +170,6 @@ export default function AuthModal() {
                 value={regEmail}
                 onChange={(e) => setRegEmail(e.target.value)}
                 autoComplete="email"
-              />
-            </div>
-
-            <div className="auth-field">
-              <label htmlFor="reg-display">Nama Tampilan (Opsional)</label>
-              <input
-                id="reg-display"
-                type="text"
-                placeholder="Nama panggilanmu"
-                value={regDisplayName}
-                onChange={(e) => setRegDisplayName(e.target.value)}
               />
             </div>
 
