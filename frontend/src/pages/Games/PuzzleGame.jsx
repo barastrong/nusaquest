@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiRefreshCw, FiEye, FiArrowLeft, FiAward, FiCheckCircle, FiKey, FiAlertCircle, FiCheck } from 'react-icons/fi';
 import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId } from '../../utils/localStorage';
 import { userApi } from '../../services/api';
+import { getImageUrl } from '../../utils/image';
 import { getDifficultyInfo } from './MapPage';
 import '../../styles/puzzle.css';
 
@@ -138,7 +139,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
         setMoves(0);
         setCheckResult(null);
       };
-      img.src = puzzleImages[round];
+      img.src = getImageUrl(puzzleImages[round]);
     };
 
     // rAF ensures CSS aspect-ratio has been applied before we read dimensions

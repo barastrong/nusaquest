@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 import { provinceApi } from '../../services/api';
+import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import '../../styles/detailmap.css';
 
@@ -74,7 +75,7 @@ export default function DetailMapPage() {
 
   return (
     <div className="detail-map-page">
-      <section className="detail-hero reveal" style={{ backgroundImage: `url(${province.heroImage || province.hero_image})` }}>
+      <section className="detail-hero reveal" style={{ backgroundImage: `url(${getImageUrl(province.heroImage || province.hero_image)})` }}>
         <div className="detail-hero-overlay"></div>
         <div className="detail-hero-content">
           <button className="detail-back-btn" onClick={() => navigate('/map')}>
@@ -145,7 +146,7 @@ export default function DetailMapPage() {
             <div className="media-grid">
               {province.culture.map((item, index) => (
                 <div key={index} className="media-card">
-                  <div className="media-img" style={{ backgroundImage: `url(${item.image})` }}>
+                  <div className="media-img" style={{ backgroundImage: `url(${getImageUrl(item.image)})` }}>
                     <div className="media-overlay">
                       <h3>{item.title}</h3>
                       <p>{item.description}</p>
@@ -168,7 +169,7 @@ export default function DetailMapPage() {
             <div className="media-grid">
               {province.tourism.map((place, index) => (
                 <div key={index} className="media-card">
-                  <div className="media-img" style={{ backgroundImage: `url(${place.image})` }}>
+                  <div className="media-img" style={{ backgroundImage: `url(${getImageUrl(place.image)})` }}>
                     <div className="media-overlay">
                       <h3>{place.name}</h3>
                       <p>{place.location}</p>
@@ -191,7 +192,7 @@ export default function DetailMapPage() {
             <div className="media-grid">
               {province.culinary.map((food, index) => (
                 <div key={index} className="media-card">
-                  <div className="media-img" style={{ backgroundImage: `url(${food.image})` }}>
+                  <div className="media-img" style={{ backgroundImage: `url(${getImageUrl(food.image)})` }}>
                     <div className="media-overlay">
                       <h3>{food.name}</h3>
                       <p>{food.description}</p>

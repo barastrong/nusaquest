@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/images/:path*",
+      "destination": "https://api.nusaquest.web.id/images/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.nusaquest.web.id/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

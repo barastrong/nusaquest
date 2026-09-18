@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 import { provinceApi } from '../../services/api';
+import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import { FiKey, FiCheckCircle, FiLock } from 'react-icons/fi';
 import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData } from '../../utils/localStorage';
@@ -19,7 +20,6 @@ export default function DetailMapPage() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-    setLoading(true);
     let isMounted = true;
 
     async function loadData() {
@@ -110,7 +110,7 @@ export default function DetailMapPage() {
         </div>
       )}
       {/* Hero Section */}
-      <section className="detail-hero reveal" style={{ backgroundImage: `url(${province.heroImage})` }}>
+      <section className="detail-hero reveal" style={{ backgroundImage: `url(${getImageUrl(province.heroImage)})` }}>
         <div className="detail-hero-overlay"></div>
         <div className="detail-hero-content">
           <button className="detail-back-btn" onClick={() => navigate('/map-games')}>
@@ -183,7 +183,7 @@ export default function DetailMapPage() {
           <div className="media-grid">
             {province.culture.map((item, index) => (
               <div key={index} className="media-card">
-                <div className="media-img" style={{ backgroundImage: `url(${item.image})` }}>
+                <div className="media-img" style={{ backgroundImage: `url(${getImageUrl(item.image)})` }}>
                   <div className="media-overlay">
                     <h3>{item.title}</h3>
                     <p>{item.description}</p>
@@ -205,7 +205,7 @@ export default function DetailMapPage() {
           <div className="media-grid">
             {province.tourism.map((place, index) => (
               <div key={index} className="media-card">
-                <div className="media-img" style={{ backgroundImage: `url(${place.image})` }}>
+                <div className="media-img" style={{ backgroundImage: `url(${getImageUrl(place.image)})` }}>
                   <div className="media-overlay">
                     <h3>{place.name}</h3>
                     <p>{place.location}</p>
@@ -227,7 +227,7 @@ export default function DetailMapPage() {
           <div className="media-grid">
             {province.culinary.map((food, index) => (
               <div key={index} className="media-card">
-                <div className="media-img" style={{ backgroundImage: `url(${food.image})` }}>
+                <div className="media-img" style={{ backgroundImage: `url(${getImageUrl(food.image)})` }}>
                   <div className="media-overlay">
                     <h3>{food.name}</h3>
                     <p>{food.description}</p>
