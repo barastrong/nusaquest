@@ -10,6 +10,9 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   auth: {
+    register: '/auth/register',
+    login: '/auth/login',
+    me: '/auth/me',
     verify: '/auth/verify',
   },
   provinces: {
@@ -49,9 +52,11 @@ export const API_ENDPOINTS = {
     deletePuzzle: (id) => `/games/puzzles/${id}`,
   },
   user: {
-    progress: (userId) => `/user/progress/${userId}`,
-    unlock: (userId) => `/user/progress/${userId}/unlock`,
-    score: (userId) => `/user/progress/${userId}/score`,
-    claimReward: (userId) => `/user/progress/${userId}/claim-reward`,
+    progress: (deviceId) => `/user/progress${deviceId ? `/${deviceId}` : ''}`,
+    unlock: '/user/unlock',
+    score: '/user/score',
+    claimReward: '/user/claim',
+    history: '/user/history',
+    sync: '/user/sync',
   },
 };

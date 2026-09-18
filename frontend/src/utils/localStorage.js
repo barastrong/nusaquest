@@ -157,6 +157,17 @@ export const saveTheme = (theme) => {
   localStorage.setItem(STORAGE_KEYS.THEME, theme);
 };
 
+// Get or generate persistent guest device ID
+export const getDeviceId = () => {
+  let id = localStorage.getItem('nusaquest_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    localStorage.setItem('nusaquest_device_id', id);
+  }
+  return id;
+};
+
+
 // Reset user data
 export const resetUserData = () => {
   return saveUserData(DEFAULT_USER_DATA);

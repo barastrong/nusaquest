@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTheme, saveTheme } from '../utils/localStorage';
+import { useAuth } from '../context/AuthContext';
 import '../styles/navbar.css';
 
 export default function Navbar() {
   const [theme, setTheme] = useState(() => getTheme());
   const [activeLink, setActiveLink] = useState('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  const { user, openAuthModal, openHistoryModal, logout } = useAuth();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -31,15 +36,27 @@ export default function Navbar() {
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isMenuOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     saveTheme(newTheme);
   };
-  const toggleMenu = () => setIsMenuOpen(v => !v);
+  const toggleMenu = () => setIsMenuOpen((v) => !v);
 
   const scrollToSection = (sectionId, linkName) => {
     setActiveLink(linkName);
@@ -63,7 +80,6 @@ export default function Navbar() {
   return (
     <div className={`nav-wrapper ${scrolled ? 'scrolled' : ''}`}>
       <nav className={`${scrolled ? 'scrolled' : ''} ${isMenuOpen ? 'menu-open' : ''}`}>
-
         <div className="nav-logo" onClick={() => handleNavigation('/', 'home')}>
           Nusa<span>Quest</span>
         </div>
@@ -96,24 +112,95 @@ export default function Navbar() {
             Games
           </button>
           <button
-            className={`nav-btn ${activeLink === 'admin' ? 'active' : ''}`}
-            onClick={() => handleNavigation('/admin', 'admin')}
-          >
-            Admin
-          </button>
-          <button
             className="nav-btn primary"
             onClick={() => handleNavigation('/map', 'map')}
           >
             Mulai Jelajah
           </button>
-          <button
-            className="nav-btn theme-btn-mobile"
-            onClick={toggleTheme}
-          >
+
+          {/* Auth button on mobile */}
+          {!user ? (
+            <button
+              className="nav-btn theme-btn-mobile"
+              onClick={() => {
+                setIsMenuOpen(false);
+                openAuthModal('login');
+              }}
+            >
+              🔑 Masuk / Daftar
+            </button>
+          ) : (
+            <>
+              <button
+                className="nav-btn theme-btn-mobile"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  openHistoryModal();
+                }}
+              >
+                📜 Riwayat Game
+              </button>
+              <button
+                className="nav-btn theme-btn-mobile"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  logout();
+                }}
+              >
+                🚪 Keluar ({user.display_name || user.username})
+              </button>
+            </>
+          )}
+
+          <button className="nav-btn theme-btn-mobile" onClick={toggleTheme}>
             {theme === 'dark' ? '🌙 Mode Terang' : '☀️ Mode Gelap'}
           </button>
         </div>
+
+        {/* User Auth Section (Desktop) */}
+        {!user ? (
+          <button
+            className="nav-auth-btn"
+            onClick={() => openAuthModal('login')}
+          >
+            Masuk
+          </button>
+        ) : (
+          <div className="nav-user-container" ref={dropdownRef}>
+            <button
+              className="nav-user-pill"
+              onClick={() => setUserDropdownOpen((prev) => !prev)}
+            >
+              <span className="nav-user-avatar">
+                {(user.display_name || user.username || 'U').charAt(0).toUpperCase()}
+              </span>
+              <span>{user.display_name || user.username}</span>
+            </button>
+
+            {userDropdownOpen && (
+              <div className="nav-user-dropdown">
+                <button
+                  className="dropdown-item"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    openHistoryModal();
+                  }}
+                >
+                  📜 Riwayat Game
+                </button>
+                <button
+                  className="dropdown-item danger"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    logout();
+                  }}
+                >
+                  🚪 Keluar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           className="theme-toggle theme-toggle-desktop"
@@ -129,9 +216,10 @@ export default function Navbar() {
           aria-label="Toggle menu"
           aria-expanded={isMenuOpen}
         >
-          <span /><span /><span />
+          <span />
+          <span />
+          <span />
         </button>
-
       </nav>
     </div>
   );

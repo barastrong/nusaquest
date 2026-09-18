@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw } from 'react-icons/fi';
 import { ClipLoader } from 'react-spinners';
-import { gameApi } from '../../services/api';
-import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData } from '../../utils/localStorage';
+import { gameApi, userApi } from '../../services/api';
+import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId } from '../../utils/localStorage';
 import { getDifficultyInfo } from './MapPage';
 
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
@@ -71,6 +71,16 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
             }
           }
         }
+
+        // Record score to server / user history
+        userApi.recordScore({
+          deviceId: getDeviceId(),
+          provinceSlug: provinceSlug || 'general',
+          gameType: 'quiz',
+          score: finalScore,
+          passed,
+        }).catch((err) => console.error('Failed to record quiz score:', err.message));
+
         setFinished(true);
       } else {
         setQIdx(qIdx + 1);

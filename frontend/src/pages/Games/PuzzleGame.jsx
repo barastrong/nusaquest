@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiRefreshCw, FiEye, FiArrowLeft, FiAward, FiCheckCircle, FiKey, FiAlertCircle, FiCheck } from 'react-icons/fi';
-import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData } from '../../utils/localStorage';
+import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId } from '../../utils/localStorage';
+import { userApi } from '../../services/api';
 import { getDifficultyInfo } from './MapPage';
 import '../../styles/puzzle.css';
 
@@ -266,6 +267,16 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
           }
         }
       }
+
+      // Record puzzle completion to server
+      userApi.recordScore({
+        deviceId: getDeviceId(),
+        provinceSlug: provinceSlug || 'nusantara',
+        gameType: 'puzzle',
+        score: Math.max(10, 50 - moves),
+        passed: true,
+      }).catch((err) => console.error('Failed to record puzzle score:', err.message));
+
       setAllDone(true);
     } else {
       setRound(r => r + 1);

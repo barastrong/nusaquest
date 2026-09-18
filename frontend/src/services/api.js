@@ -1,9 +1,13 @@
 import { API_CONFIG, API_ENDPOINTS } from '../config/apiConfig';
 
 async function fetchJson(endpoint, options = {}) {
+  const token = localStorage.getItem('nusaquest_token');
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
   const config = {
     headers: {
       ...API_CONFIG.headers,
+      ...authHeader,
       ...options.headers,
     },
     ...options,
@@ -12,12 +16,15 @@ async function fetchJson(endpoint, options = {}) {
   const response = await fetch(`${API_CONFIG.baseURL}${endpoint}`, config);
   const json = await response.json();
   if (!response.ok) {
-    throw new Error(json.message || 'API request failed');
+    throw new Error(json.message || 'Permintaan gagal diproses');
   }
   return json;
 }
 
 export const authApi = {
+  register: (data) => fetchJson(API_ENDPOINTS.auth.register, { method: 'POST', body: JSON.stringify(data) }),
+  login: (data) => fetchJson(API_ENDPOINTS.auth.login, { method: 'POST', body: JSON.stringify(data) }),
+  getMe: () => fetchJson(API_ENDPOINTS.auth.me),
   verifyAdminKey: (key) => fetchJson(API_ENDPOINTS.auth.verify, { method: 'POST', body: JSON.stringify({ key }) }),
 };
 
@@ -59,8 +66,10 @@ export const gameApi = {
 };
 
 export const userApi = {
-  getProgress: (userId) => fetchJson(API_ENDPOINTS.user.progress(userId)),
-  unlockProvince: (userId, data) => fetchJson(API_ENDPOINTS.user.unlock(userId), { method: 'POST', body: JSON.stringify(data) }),
-  recordScore: (userId, data) => fetchJson(API_ENDPOINTS.user.score(userId), { method: 'POST', body: JSON.stringify(data) }),
-  claimReward: (userId, data) => fetchJson(API_ENDPOINTS.user.claimReward(userId), { method: 'POST', body: JSON.stringify(data) }),
+  getProgress: (deviceId) => fetchJson(API_ENDPOINTS.user.progress(deviceId)),
+  unlockProvince: (data) => fetchJson(API_ENDPOINTS.user.unlock, { method: 'POST', body: JSON.stringify(data) }),
+  recordScore: (data) => fetchJson(API_ENDPOINTS.user.score, { method: 'POST', body: JSON.stringify(data) }),
+  claimReward: (data) => fetchJson(API_ENDPOINTS.user.claimReward, { method: 'POST', body: JSON.stringify(data) }),
+  getHistory: () => fetchJson(API_ENDPOINTS.user.history),
+  syncProgress: (data) => fetchJson(API_ENDPOINTS.user.sync, { method: 'POST', body: JSON.stringify(data) }),
 };

@@ -9,6 +9,9 @@ import GamesPage from './pages/Games/GamesPage';
 import MapsPage from './pages/Games/MapPage';
 import MapsPageDetail from './pages/Games/DetailMapPage';
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import { AuthProvider } from './context/AuthContext';
+import AuthModal from './components/AuthModal';
+import GameHistoryModal from './components/GameHistoryModal';
 import { getUserData, getTheme, resetUserData } from './utils/localStorage';
 
 function AppContent() {
@@ -56,6 +59,10 @@ function AppContent() {
         <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
       {!hideFooter && <Footer />}
+
+      {/* Global Modals for Auth & Game History */}
+      <AuthModal />
+      <GameHistoryModal />
     </>
   );
 }
@@ -63,7 +70,9 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </BrowserRouter>
   );
 }
