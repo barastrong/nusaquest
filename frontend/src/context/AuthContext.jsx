@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, userApi } from '../services/api';
-import { getDeviceId } from '../utils/localStorage';
+import { getDeviceId, getUserData, updateUserData } from '../utils/localStorage';
 
 const AuthContext = createContext(null);
 
@@ -96,6 +96,10 @@ export function AuthProvider({ children }) {
       setToken(res.token);
       setUser(res.user);
       setIsAuthModalOpen(false);
+      const currentData = getUserData();
+      if ((currentData.keys || 0) < 1) {
+        updateUserData({ keys: 1 });
+      }
       fetchHistory();
       return res.user;
     }

@@ -23,7 +23,7 @@ export const getUserProgress = async (req, res) => {
       const defaultData = {
         user_id: userId || null,
         device_id: deviceId || (userId ? `user_${userId}` : `guest_${Date.now()}`),
-        keys: 1,
+        keys: userId ? 1 : 0,
         total_score: 0,
         games_played: 0,
         unlocked_provinces: [],
@@ -127,7 +127,7 @@ export const recordGameScore = async (req, res) => {
         .insert({
           user_id: userId || null,
           device_id: deviceId || (userId ? `user_${userId}` : `guest_${Date.now()}`),
-          keys: 1,
+          keys: userId ? 1 : 0,
           total_score: 0,
           games_played: 0,
           unlocked_provinces: [],

@@ -74,14 +74,18 @@ export const register = async (req, res) => {
     if (deviceId) {
       const { data: existingProgress } = await supabase
         .from('user_progress')
-        .select('id, user_id')
+        .select('id, user_id, keys')
         .eq('device_id', deviceId)
         .maybeSingle();
 
       if (existingProgress && !existingProgress.user_id) {
         await supabase
           .from('user_progress')
-          .update({ user_id: newUser.id, updated_at: new Date().toISOString() })
+          .update({
+            user_id: newUser.id,
+            keys: Math.max(existingProgress.keys || 0, 1),
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', existingProgress.id);
       } else {
         await supabase.from('user_progress').insert({
