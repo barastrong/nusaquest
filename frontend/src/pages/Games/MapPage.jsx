@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
 import { getUserData, unlockRegion as unlockRegionLS } from '../../utils/localStorage';
+import { useAuth } from '../../context/AuthContext';
 import MapSVG from './/Map/MapSVG';
 import RegionPopup from './Map/RegionPopup';
 import LockedRegionPopup from './Map/LockedRegionPopup';
@@ -43,6 +44,7 @@ const TOTAL_PROVINCES = 38;
 
 export default function MapPage() {
   const navigate = useNavigate();
+  const { user, openAuthModal } = useAuth();
   const [loading, setLoading] = useState(true);
   const [hoveredRegionId, setHoveredRegionId] = useState(null);
   const [selectedRegionId, setSelectedRegionId] = useState(null);
@@ -56,17 +58,22 @@ export default function MapPage() {
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [unlockedRegions, setUnlockedRegions] = useState([]);
-  const [keyValue, setKeyValue] = useState(1);
+  const [keyValue, setKeyValue] = useState(0);
   const [lockedRegionKeyCost, setLockedRegionKeyCost] = useState(1);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [unlockAnim, setUnlockAnim] = useState(null); // { name, difficulty, color }
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount or when user state changes
   useEffect(() => {
+    if (!user) {
+      setUnlockedRegions([]);
+      setKeyValue(0);
+      return;
+    }
     const data = getUserData();
-    setUnlockedRegions(data.unlockedRegions);
-    setKeyValue(data.keys);
-  }, []);
+    setUnlockedRegions(data.unlockedRegions || []);
+    setKeyValue(data.keys || 0);
+  }, [user]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
@@ -90,6 +97,11 @@ export default function MapPage() {
   };
 
   const handleRegionClick = (regionId, regionName, centerX, centerY) => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+
     // Reset locked popup if open
     setLockedRegionNamePopup(null);
     setLockedRegionIdPopup(null);
@@ -108,6 +120,11 @@ export default function MapPage() {
   };
 
   const handleLockedRegionClick = (regionId, regionName) => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+
     const { unlockCost } = getDifficultyInfo(regionId);
     setSelectedRegionName(null);
     setSelectedRegionId(null);
@@ -118,6 +135,11 @@ export default function MapPage() {
   };
 
   const handleUnlockRegion = (regionId, keyCost) => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+
     const success = unlockRegionLS(regionId, keyCost);
     if (success) {
       const data = getUserData();
@@ -186,7 +208,7 @@ export default function MapPage() {
 
                 <div className="htp-notice">
                   <span className="htp-notice-icon"><FiGift /></span>
-                  <span>Kamu dapat <strong>1 kunci gratis</strong> untuk memulai petualangan!</span>
+                  <span>{user ? 'Kumpulkan kunci dengan menyelesaikan tantangan untuk membuka provinsi!' : 'Silakan login terlebih dahulu untuk mulai bermain dan membuka provinsi!'}</span>
                 </div>
 
                 <div className="htp-flow">

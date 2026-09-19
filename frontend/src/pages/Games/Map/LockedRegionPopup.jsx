@@ -1,9 +1,11 @@
 import '../../../styles/map.css';
 import { FiKey, FiLock } from "react-icons/fi";
 import { getDifficultyInfo } from '../MapPage';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function LockedRegionPopup({ regionName, regionId, onClose, onUnlock, keyValue = 0, keyRequired = 1 }) {
-  const canUnlock = keyValue >= keyRequired;
+  const { user, openAuthModal } = useAuth();
+  const canUnlock = Boolean(user && keyValue >= keyRequired);
   const { difficulty, label, color, keyReward } = getDifficultyInfo(regionId);
 
   return (
@@ -28,12 +30,18 @@ export default function LockedRegionPopup({ regionName, regionId, onClose, onUnl
               <span className="key-amount">{keyRequired} kunci dibutuhkan</span>
             </div>
             <p style={{ fontSize: 12, color: '#888', marginTop: 8, marginBottom: 0 }}>
-              Kunci kamu: <strong style={{ color: keyValue >= keyRequired ? '#40916C' : '#e74c3c' }}>{keyValue}</strong>
-              {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>{keyReward} 🔑</strong>
+              Kunci kamu: <strong style={{ color: canUnlock ? '#40916C' : '#e74c3c' }}>{user ? keyValue : 0}</strong>
+              {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>{keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /></strong>
             </p>
-            {!canUnlock && (
+            {user ? (
+              !canUnlock && (
+                <p style={{ color: '#e74c3c', marginTop: 6, fontSize: 12 }}>
+                  Butuh {keyRequired - keyValue} kunci lagi
+                </p>
+              )
+            ) : (
               <p style={{ color: '#e74c3c', marginTop: 6, fontSize: 12 }}>
-                Butuh {keyRequired - keyValue} kunci lagi
+                Silakan login untuk membuka provinsi
               </p>
             )}
           </div>
@@ -42,11 +50,20 @@ export default function LockedRegionPopup({ regionName, regionId, onClose, onUnl
             <button className="popup-btn-secondary" onClick={onClose} style={{ flex: 1 }}>Batal</button>
             <button
               className="popup-btn-primary"
-              onClick={() => { if (canUnlock) { onUnlock(); onClose(); } }}
-              disabled={!canUnlock}
-              style={{ flex: 1, opacity: canUnlock ? 1 : 0.5, cursor: canUnlock ? 'pointer' : 'not-allowed' }}
+              onClick={() => {
+                if (!user) {
+                  onClose();
+                  openAuthModal('login');
+                  return;
+                }
+                if (canUnlock) {
+                  onUnlock();
+                  onClose();
+                }
+              }}
+              style={{ flex: 1, opacity: !user || canUnlock ? 1 : 0.5, cursor: !user || canUnlock ? 'pointer' : 'not-allowed' }}
             >
-              {canUnlock ? 'Buka Provinsi' : 'Kunci Kurang'}
+              {user ? (canUnlock ? 'Buka Provinsi' : 'Kunci Kurang') : 'Masuk Akun'}
             </button>
           </div>
         </div>

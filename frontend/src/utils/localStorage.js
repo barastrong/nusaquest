@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
 
 // Default user data
 const DEFAULT_USER_DATA = {
-  keys: 1, // User dapat 1 key di awal
+  keys: 0, // Default 0 ketika belum login
   unlockedRegions: [], // Tidak ada region yang unlocked di awal
   quizScores: {},
   puzzleScores: {},

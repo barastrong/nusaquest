@@ -6,12 +6,14 @@ import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import { FiKey, FiCheckCircle, FiLock } from 'react-icons/fi';
 import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData } from '../../utils/localStorage';
+import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../Games/MapPage';
 import '../../styles/detailmap.css';
 
 export default function DetailMapPage() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const { user, openAuthModal } = useAuth();
   const [province, setProvince] = useState(null);
   const [claimed, setClaimed] = useState(false);
   const [canClaim, setCanClaim] = useState(false);
@@ -23,6 +25,12 @@ export default function DetailMapPage() {
     let isMounted = true;
 
     async function loadData() {
+      if (!user) {
+        openAuthModal('login');
+        navigate('/map-games');
+        return;
+      }
+
       // 1. Check unlock status
       const userData = getUserData();
       const isUnlocked = userData.unlockedRegions.includes(name);
@@ -59,7 +67,7 @@ export default function DetailMapPage() {
 
     loadData();
     return () => { isMounted = false; };
-  }, [name, navigate]);
+  }, [name, navigate, user, openAuthModal]);
 
   // Reveal animation on scroll
   useEffect(() => {
@@ -72,6 +80,10 @@ export default function DetailMapPage() {
   }, [loading]);
 
   const handleClaim = () => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
     const { keyReward } = getDifficultyInfo(name);
     const success = claimProvinceReward(name, keyReward);
     if (success) {
@@ -267,7 +279,18 @@ export default function DetailMapPage() {
 
             {/* CTA Buttons — sejajar */}
             <div className="cta-btn-row">
-              <button className="btn-play-game" onClick={() => navigate(`/games/${name}`)}>Mulai Mini Game</button>
+              <button
+                className="btn-play-game"
+                onClick={() => {
+                  if (!user) {
+                    openAuthModal('login');
+                    return;
+                  }
+                  navigate(`/games/${name}`);
+                }}
+              >
+                Mulai Mini Game
+              </button>
 
               {canClaim ? (
                 <button className="claim-reward-btn claim-reward-active" onClick={handleClaim}>

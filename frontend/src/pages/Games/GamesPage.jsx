@@ -4,19 +4,27 @@ import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
 import { getUserData } from '../../utils/localStorage';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/games.css';
 
 export default function GamesPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { user, openAuthModal } = useAuth();
   const [activeGame, setActiveGame] = useState(null);
   const [province, setProvince] = useState(null);
 
   // Scroll to top on mount
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
 
-  // Check unlock and fetch province data
+  // Check auth and unlock status, then fetch province data
   useEffect(() => {
+    if (!user) {
+      openAuthModal('login');
+      navigate('/map-games');
+      return;
+    }
+
     if (!slug) return;
 
     const userData = getUserData();
@@ -44,7 +52,7 @@ export default function GamesPage() {
 
     fetchProvince();
     return () => { isMounted = false; };
-  }, [slug, navigate]);
+  }, [slug, navigate, user, openAuthModal]);
 
   // Reveal animation on scroll
   useEffect(() => {
@@ -119,7 +127,13 @@ export default function GamesPage() {
                 {province && <span className="gsc-pill">{province.name}</span>}
                 <span className="gsc-pill">Skor Akhir</span>
               </div>
-              <button className="gsc-cta" onClick={() => setActiveGame('quiz')}>Mulai Quiz</button>
+              <button className="gsc-cta" onClick={() => {
+                if (!user) {
+                  openAuthModal('login');
+                  return;
+                }
+                setActiveGame('quiz');
+              }}>Mulai Quiz</button>
             </div>
           </div>
 
@@ -146,7 +160,13 @@ export default function GamesPage() {
                 {province && <span className="gsc-pill">{province.name}</span>}
                 <span className="gsc-pill">Hitung Langkah</span>
               </div>
-              <button className="gsc-cta" onClick={() => setActiveGame('puzzle')}>Mulai Puzzle</button>
+              <button className="gsc-cta" onClick={() => {
+                if (!user) {
+                  openAuthModal('login');
+                  return;
+                }
+                setActiveGame('puzzle');
+              }}>Mulai Puzzle</button>
             </div>
           </div>
         </div>
