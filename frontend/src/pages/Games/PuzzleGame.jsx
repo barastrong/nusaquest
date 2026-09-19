@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiRefreshCw, FiEye, FiArrowLeft, FiAward, FiCheckCircle, FiKey, FiAlertCircle, FiCheck } from 'react-icons/fi';
-import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId } from '../../utils/localStorage';
+import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
 import { userApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { getDifficultyInfo } from './MapPage';
@@ -265,6 +265,17 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
             const userData = getUserData();
             setRewardToast({ keys: keyReward, total: userData.keys });
             setTimeout(() => setRewardToast(null), 4000);
+
+            // Sync claim to backend
+            userApi.claimReward({
+              deviceId: getDeviceId(),
+              provinceSlug,
+              keyReward,
+            }).then((res) => {
+              if (res?.success && res?.data) {
+                syncFromBackend(res.data);
+              }
+            }).catch((err) => console.error('Failed to claim reward on server:', err.message));
           }
         }
       }
@@ -299,7 +310,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
 
   const currentSrc = puzzleImages[round];
   const provinceName = province?.name || provinceSlug || 'Nusantara';
-  const diffInfo = provinceSlug ? getDifficultyInfo(provinceSlug) : { keyReward: 1 };
+  const diffInfo = provinceSlug ? getDifficultyInfo(provinceSlug) : { keyReward: 2 };
 
   return (
     <div className="puzzle-page">

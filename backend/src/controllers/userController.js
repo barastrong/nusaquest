@@ -50,7 +50,7 @@ export const getUserProgress = async (req, res) => {
 export const unlockProvince = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { deviceId, provinceSlug } = req.body;
+    const { deviceId, provinceSlug, keyCost = 1 } = req.body;
 
     if (!provinceSlug || (!userId && !deviceId)) {
       return res.status(400).json({ success: false, message: 'provinceSlug dan user/deviceId wajib diisi.' });
@@ -73,12 +73,13 @@ export const unlockProvince = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Provinsi sudah terbuka.' });
     }
 
-    if (user.keys < 1) {
+    const cost = Math.max(1, Number(keyCost) || 1);
+    if ((user.keys || 0) < cost) {
       return res.status(400).json({ success: false, message: 'Kunci tidak cukup.' });
     }
 
     const updatedUnlocked = [...(user.unlocked_provinces || []), provinceSlug];
-    const updatedKeys = user.keys - 1;
+    const updatedKeys = Math.max(0, (user.keys || 0) - cost);
 
     const { data: updated, error: updateErr } = await supabase
       .from('user_progress')
@@ -186,7 +187,7 @@ export const recordGameScore = async (req, res) => {
 export const claimReward = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { deviceId, provinceSlug } = req.body;
+    const { deviceId, provinceSlug, keyReward = 1 } = req.body;
 
     if (!provinceSlug || (!userId && !deviceId)) {
       return res.status(400).json({ success: false, message: 'provinceSlug dan user/deviceId wajib diisi.' });
@@ -209,8 +210,9 @@ export const claimReward = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Hadiah sudah diklaim.' });
     }
 
+    const reward = Math.max(1, Number(keyReward) || 1);
     const updatedClaimed = [...(user.claimed_rewards || []), provinceSlug];
-    const updatedKeys = user.keys + 1;
+    const updatedKeys = (user.keys || 0) + reward;
 
     const { data: updated, error: updateErr } = await supabase
       .from('user_progress')
@@ -289,10 +291,10 @@ export const syncProgress = async (req, res) => {
         .insert({
           user_id: userId,
           device_id: deviceId || `user_${userId}`,
-          keys: localProgress?.keys || 1,
-          total_score: localProgress?.total_score || localProgress?.score || 0,
-          games_played: localProgress?.games_played || 0,
-          unlocked_provinces: localProgress?.unlocked_provinces || localProgress?.unlockedProvinces || [],
+          keys: Math.max(localProgress?.keys || 0, 1),
+          total_score: localProgress?.total_score || localProgress?.totalScore || localProgress?.score || 0,
+          games_played: localProgress?.games_played || localProgress?.gamesPlayed || 0,
+          unlocked_provinces: localProgress?.unlocked_provinces || localProgress?.unlockedRegions || localProgress?.unlockedProvinces || [],
           completed_games: localProgress?.completed_games || localProgress?.completedGames || {},
           claimed_rewards: localProgress?.claimed_rewards || localProgress?.claimedRewards || [],
         })
@@ -305,10 +307,11 @@ export const syncProgress = async (req, res) => {
 
     // If both exist, merge them
     if (localProgress) {
+      const localUnlocked = localProgress.unlocked_provinces || localProgress.unlockedRegions || localProgress.unlockedProvinces || [];
       const mergedUnlocked = Array.from(
         new Set([
           ...(userProg.unlocked_provinces || []),
-          ...(localProgress.unlocked_provinces || localProgress.unlockedProvinces || []),
+          ...localUnlocked,
         ])
       );
 
@@ -318,16 +321,22 @@ export const syncProgress = async (req, res) => {
         mergedCompleted[prov] = Array.from(new Set([...(mergedCompleted[prov] || []), ...games]));
       }
 
+      const localClaimed = localProgress.claimed_rewards || localProgress.claimedRewards || [];
       const mergedClaimed = Array.from(
         new Set([
           ...(userProg.claimed_rewards || []),
-          ...(localProgress.claimed_rewards || localProgress.claimedRewards || []),
+          ...localClaimed,
         ])
       );
 
-      const mergedScore = Math.max(userProg.total_score || 0, localProgress.total_score || localProgress.score || 0);
-      const mergedKeys = Math.max(userProg.keys || 1, localProgress.keys || 1);
-      const mergedGamesPlayed = Math.max(userProg.games_played || 0, localProgress.games_played || 0);
+      const localScore = localProgress.total_score || localProgress.totalScore || localProgress.score || 0;
+      const mergedScore = Math.max(userProg.total_score || 0, localScore);
+
+      const localKeys = localProgress.keys !== undefined ? Number(localProgress.keys) : 0;
+      const mergedKeys = Math.max(userProg.keys ?? 1, localKeys);
+
+      const localGames = localProgress.games_played || localProgress.gamesPlayed || 0;
+      const mergedGamesPlayed = Math.max(userProg.games_played || 0, localGames);
 
       const { data: updated, error: updateErr } = await supabase
         .from('user_progress')

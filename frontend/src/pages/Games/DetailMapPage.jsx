@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
-import { provinceApi } from '../../services/api';
+import { provinceApi, userApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import { FiKey, FiCheckCircle, FiLock } from 'react-icons/fi';
-import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData } from '../../utils/localStorage';
+import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../Games/MapPage';
 import '../../styles/detailmap.css';
@@ -79,7 +79,7 @@ export default function DetailMapPage() {
     return () => obs.disconnect();
   }, [loading]);
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
     if (!user) {
       openAuthModal('login');
       return;
@@ -91,6 +91,20 @@ export default function DetailMapPage() {
       setCanClaim(false);
       setShowClaimAnim(true);
       setTimeout(() => setShowClaimAnim(false), 3000);
+
+      // Persist claim to backend Supabase
+      try {
+        const res = await userApi.claimReward({
+          deviceId: getDeviceId(),
+          provinceSlug: name,
+          keyReward,
+        });
+        if (res?.success && res?.data) {
+          syncFromBackend(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to sync claim to server:', err.message);
+      }
     }
   };
 

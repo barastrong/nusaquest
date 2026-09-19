@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, userApi } from '../services/api';
-import { getDeviceId, getUserData, updateUserData } from '../utils/localStorage';
+import { getDeviceId, getUserData, updateUserData, syncFromBackend, resetUserData } from '../utils/localStorage';
 
 const AuthContext = createContext(null);
 
@@ -8,10 +8,31 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('nusaquest_token'));
   const [loading, setLoading] = useState(true);
+  const [userProgress, setUserProgress] = useState(() => getUserData());
   const [gameHistory, setGameHistory] = useState([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('login');
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+  // Sync progress with backend
+  const syncProgressWithBackend = useCallback(async () => {
+    if (!localStorage.getItem('nusaquest_token')) {
+      return getUserData();
+    }
+    try {
+      const deviceId = getDeviceId();
+      const localData = getUserData();
+      const res = await userApi.syncProgress({ deviceId, localProgress: localData });
+      if (res?.success && res?.data) {
+        const synced = syncFromBackend(res.data);
+        setUserProgress(synced);
+        return synced;
+      }
+    } catch (err) {
+      console.error('Failed to sync user progress:', err.message);
+    }
+    return getUserData();
+  }, []);
 
   // Fetch game history
   const fetchHistory = useCallback(async () => {
@@ -43,6 +64,7 @@ export function AuthProvider({ children }) {
         const res = await authApi.getMe();
         if (mounted && res.success && res.user) {
           setUser(res.user);
+          await syncProgressWithBackend();
           fetchHistory();
         } else {
           localStorage.removeItem('nusaquest_token');
@@ -66,7 +88,7 @@ export function AuthProvider({ children }) {
     return () => {
       mounted = false;
     };
-  }, [fetchHistory]);
+  }, [fetchHistory, syncProgressWithBackend]);
 
   const login = async (identifier, password) => {
     const deviceId = getDeviceId();
@@ -76,6 +98,7 @@ export function AuthProvider({ children }) {
       setToken(res.token);
       setUser(res.user);
       setIsAuthModalOpen(false);
+      await syncProgressWithBackend();
       fetchHistory();
       return res.user;
     }
@@ -100,6 +123,7 @@ export function AuthProvider({ children }) {
       if ((currentData.keys || 0) < 1) {
         updateUserData({ keys: 1 });
       }
+      await syncProgressWithBackend();
       fetchHistory();
       return res.user;
     }
@@ -112,6 +136,8 @@ export function AuthProvider({ children }) {
     setUser(null);
     setGameHistory([]);
     setIsHistoryModalOpen(false);
+    resetUserData();
+    setUserProgress(getUserData());
   };
 
   const openAuthModal = (tab = 'login') => {
@@ -137,6 +163,9 @@ export function AuthProvider({ children }) {
     token,
     loading,
     isAuthenticated: Boolean(user),
+    userProgress,
+    setUserProgress,
+    syncProgressWithBackend,
     gameHistory,
     fetchHistory,
     login,

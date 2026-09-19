@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
-import { getUserData, unlockRegion as unlockRegionLS } from '../../utils/localStorage';
+import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend } from '../../utils/localStorage';
+import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import MapSVG from './/Map/MapSVG';
 import RegionPopup from './Map/RegionPopup';
@@ -11,9 +12,9 @@ import UnlockAnimation from './Map/UnlockAnimation';
 import '../../styles/map.css';
 
 export const DIFFICULTY_CONFIG = {
-  mudah:  { unlockCost: 1, keyReward: 1, label: 'Mudah',  color: '#40916C' },
-  sedang: { unlockCost: 2, keyReward: 1, label: 'Sedang', color: '#C9A84C' },
-  susah:  { unlockCost: 3, keyReward: 2, label: 'Susah',  color: '#e74c3c' },
+  mudah:  { unlockCost: 1, keyReward: 2, label: 'Mudah',  color: '#40916C' },
+  sedang: { unlockCost: 2, keyReward: 3, label: 'Sedang', color: '#C9A84C' },
+  susah:  { unlockCost: 3, keyReward: 4, label: 'Susah',  color: '#e74c3c' },
 };
 
 const regionDifficulty = {
@@ -44,7 +45,7 @@ const TOTAL_PROVINCES = 38;
 
 export default function MapPage() {
   const navigate = useNavigate();
-  const { user, openAuthModal } = useAuth();
+  const { user, openAuthModal, syncProgressWithBackend } = useAuth();
   const [loading, setLoading] = useState(true);
   const [hoveredRegionId, setHoveredRegionId] = useState(null);
   const [selectedRegionId, setSelectedRegionId] = useState(null);
@@ -63,7 +64,7 @@ export default function MapPage() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [unlockAnim, setUnlockAnim] = useState(null); // { name, difficulty, color }
 
-  // Load from localStorage on mount or when user state changes
+  // Load from localStorage and sync latest from backend on mount or when user changes
   useEffect(() => {
     if (!user) {
       setUnlockedRegions([]);
@@ -73,7 +74,17 @@ export default function MapPage() {
     const data = getUserData();
     setUnlockedRegions(data.unlockedRegions || []);
     setKeyValue(data.keys || 0);
-  }, [user]);
+
+    // Sync latest from backend to ensure cross-device consistency
+    if (syncProgressWithBackend) {
+      syncProgressWithBackend().then((synced) => {
+        if (synced) {
+          setUnlockedRegions(synced.unlockedRegions || []);
+          setKeyValue(synced.keys ?? 0);
+        }
+      });
+    }
+  }, [user, syncProgressWithBackend]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
@@ -134,7 +145,7 @@ export default function MapPage() {
     setIsRegionSelected(true);
   };
 
-  const handleUnlockRegion = (regionId, keyCost) => {
+  const handleUnlockRegion = async (regionId, keyCost) => {
     if (!user) {
       openAuthModal('login');
       return;
@@ -145,11 +156,28 @@ export default function MapPage() {
       const data = getUserData();
       setKeyValue(data.keys);
       setUnlockedRegions(data.unlockedRegions);
+      const provName = lockedRegionNamePopup;
       setLockedRegionNamePopup(null);
       setLockedRegionIdPopup(null);
       // Trigger unlock animation
       const { label, color } = getDifficultyInfo(regionId);
-      setUnlockAnim({ name: lockedRegionNamePopup, difficulty: label, color });
+      setUnlockAnim({ name: provName, difficulty: label, color });
+
+      // Persist unlock to Supabase backend
+      try {
+        const res = await userApi.unlockProvince({
+          deviceId: getDeviceId(),
+          provinceSlug: regionId,
+          keyCost,
+        });
+        if (res?.success && res?.data) {
+          const synced = syncFromBackend(res.data);
+          setKeyValue(synced.keys);
+          setUnlockedRegions(synced.unlockedRegions);
+        }
+      } catch (err) {
+        console.error('Failed to sync unlock to backend:', err.message);
+      }
     }
   };
 

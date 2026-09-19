@@ -49,6 +49,23 @@ export const saveUserData = (userData) => {
   }
 };
 
+// Sync local user data with backend data
+export const syncFromBackend = (serverData) => {
+  if (!serverData) return getUserData();
+  const current = getUserData();
+  const updated = {
+    ...current,
+    keys: serverData.keys !== undefined ? serverData.keys : current.keys,
+    unlockedRegions: serverData.unlocked_provinces || serverData.unlockedRegions || current.unlockedRegions || [],
+    completedGames: serverData.completed_games || serverData.completedGames || current.completedGames || {},
+    claimedRewards: serverData.claimed_rewards || serverData.claimedRewards || current.claimedRewards || [],
+    totalScore: serverData.total_score !== undefined ? serverData.total_score : (current.totalScore || 0),
+    gamesPlayed: serverData.games_played !== undefined ? serverData.games_played : (current.gamesPlayed || 0),
+  };
+  saveUserData(updated);
+  return updated;
+};
+
 // Update specific field
 export const updateUserData = (updates) => {
   const currentData = getUserData();

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw } from 'react-icons/fi';
 import { ClipLoader } from 'react-spinners';
 import { gameApi, userApi } from '../../services/api';
-import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId } from '../../utils/localStorage';
+import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
 import { getDifficultyInfo } from './MapPage';
 
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
@@ -68,6 +68,17 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
               const userData = getUserData();
               setRewardToast({ keys: keyReward, total: userData.keys });
               setTimeout(() => setRewardToast(null), 4000);
+
+              // Sync claim to backend
+              userApi.claimReward({
+                deviceId: getDeviceId(),
+                provinceSlug,
+                keyReward,
+              }).then((res) => {
+                if (res?.success && res?.data) {
+                  syncFromBackend(res.data);
+                }
+              }).catch((err) => console.error('Failed to claim reward on server:', err.message));
             }
           }
         }
