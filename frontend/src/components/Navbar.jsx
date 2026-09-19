@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiClock, FiLogOut } from 'react-icons/fi';
 import { getTheme, saveTheme } from '../utils/localStorage';
 import { useAuth } from '../context/AuthContext';
 import '../styles/navbar.css';
@@ -148,7 +149,7 @@ export default function Navbar() {
                     openHistoryModal();
                   }}
                 >
-                  📜 Riwayat Game
+                  <FiClock size={16} /> Riwayat Game
                 </button>
                 <button
                   className="dropdown-item danger"
@@ -157,7 +158,7 @@ export default function Navbar() {
                     logout();
                   }}
                 >
-                  🚪 Keluar
+                  <FiLogOut size={16} /> Keluar
                 </button>
               </div>
             )}
