@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
   },
   games: {
     quizzes: (provinceSlug) => `/games/quizzes${provinceSlug ? `?province=${provinceSlug}` : ''}`,
+    generateAiQuiz: '/games/quizzes/generate-ai',
     createQuiz: '/games/quizzes',
     updateQuiz: (id) => `/games/quizzes/${id}`,
     deleteQuiz: (id) => `/games/quizzes/${id}`,

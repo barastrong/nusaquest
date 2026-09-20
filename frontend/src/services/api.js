@@ -55,6 +55,7 @@ export const regionApi = {
 
 export const gameApi = {
   getQuizzes: (provinceSlug) => fetchJson(API_ENDPOINTS.games.quizzes(provinceSlug)),
+  generateAiQuiz: (data) => fetchJson(API_ENDPOINTS.games.generateAiQuiz, { method: 'POST', body: JSON.stringify(data) }),
   createQuiz: (data) => fetchJson(API_ENDPOINTS.games.createQuiz, { method: 'POST', body: JSON.stringify(data) }),
   updateQuiz: (id, data) => fetchJson(API_ENDPOINTS.games.updateQuiz(id), { method: 'PUT', body: JSON.stringify(data) }),
   deleteQuiz: (id) => fetchJson(API_ENDPOINTS.games.deleteQuiz(id), { method: 'DELETE' }),

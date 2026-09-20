@@ -8,6 +8,10 @@ export default function QuizManager() {
   const [selectedProvince, setSelectedProvince] = useState('');
   const [activeModal, setActiveModal] = useState(null);
   const [editingQuiz, setEditingQuiz] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiModal, setAiModal] = useState(false);
+  const [aiProvince, setAiProvince] = useState('');
+  const [aiCount, setAiCount] = useState(3);
 
   const [formData, setFormData] = useState({
     province_slug: 'general',
@@ -83,6 +87,41 @@ export default function QuizManager() {
     }
   };
 
+  const handleOpenAiModal = () => {
+    setAiProvince(selectedProvince && selectedProvince !== 'general' ? selectedProvince : (provinces[0]?.slug || 'jawa-timur'));
+    setAiCount(3);
+    setAiModal(true);
+  };
+
+  const handleGenerateAi = async (e) => {
+    e.preventDefault();
+    if (!aiProvince) {
+      alert('Pilih provinsi terlebih dahulu');
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+      const res = await gameApi.generateAiQuiz({
+        province_slug: aiProvince,
+        count: Number(aiCount),
+      });
+
+      if (res?.success && Array.isArray(res?.data)) {
+        // Simpan langsung ke database quizzes
+        await Promise.all(res.data.map(item => gameApi.createQuiz(item)));
+        alert(`Berhasil membuat ${res.data.length} soal kuis otomatis berdasarkan data provinsi!`);
+        setAiModal(false);
+        setSelectedProvince(aiProvince);
+        loadData();
+      }
+    } catch (err) {
+      alert(`Gagal generate AI: ${err.message}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div className="admin-card">
       <div className="admin-toolbar">
@@ -103,7 +142,20 @@ export default function QuizManager() {
             </select>
           </div>
         </div>
-        <button className="admin-btn" onClick={handleOpenAdd}>+ Tambah Soal Quiz</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="admin-btn admin-btn-secondary"
+            onClick={handleOpenAiModal}
+            style={{
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              borderColor: '#6366f1',
+              color: '#fff',
+            }}
+          >
+            Generate Soal AI
+          </button>
+          <button className="admin-btn" onClick={handleOpenAdd}>+ Tambah Soal Quiz</button>
+        </div>
       </div>
 
       {loading ? (
@@ -200,6 +252,71 @@ export default function QuizManager() {
               <div className="admin-modal-actions">
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setActiveModal(false)}>Batal</button>
                 <button type="submit" className="admin-btn">Simpan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {aiModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <h2>Generate Soal Kuis Otomatis</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '16px' }}>
+              Soal akan dibuat otomatis berdasarkan data informasi, budaya, kuliner, dan wisata provinsi yang tersimpan di sistem.
+            </p>
+            <form onSubmit={handleGenerateAi}>
+              <div className="admin-form-group">
+                <label>Pilih Provinsi Sumber Data</label>
+                <select
+                  className="admin-select"
+                  value={aiProvince}
+                  onChange={(e) => setAiProvince(e.target.value)}
+                  disabled={aiLoading}
+                  required
+                >
+                  {provinces.map((p) => (
+                    <option key={p.slug} value={p.slug}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="admin-form-group">
+                <label>Jumlah Butir Soal</label>
+                <select
+                  className="admin-select"
+                  value={aiCount}
+                  onChange={(e) => setAiCount(Number(e.target.value))}
+                  disabled={aiLoading}
+                >
+                  <option value={1}>1 Soal</option>
+                  <option value={2}>2 Soal</option>
+                  <option value={3}>3 Soal (Rekomendasi)</option>
+                  <option value={5}>5 Soal</option>
+                </select>
+              </div>
+
+              <div className="admin-modal-actions">
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-secondary"
+                  onClick={() => setAiModal(false)}
+                  disabled={aiLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="admin-btn"
+                  disabled={aiLoading}
+                  style={{
+                    background: aiLoading ? '#64748b' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                    borderColor: '#6366f1',
+                    color: '#fff',
+                  }}
+                >
+                  {aiLoading ? 'Memproses...' : 'Generate & Simpan ke Bank Soal'}
+                </button>
               </div>
             </form>
           </div>

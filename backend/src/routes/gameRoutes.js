@@ -4,6 +4,7 @@ import {
   createQuiz,
   updateQuiz,
   deleteQuiz,
+  generateAiQuizzes,
   getAllPuzzles,
   createPuzzle,
   updatePuzzle,
@@ -13,6 +14,7 @@ import {
 const router = express.Router();
 
 router.get('/quizzes', getQuizzesByProvince);
+router.post('/quizzes/generate-ai', generateAiQuizzes);
 router.post('/quizzes', createQuiz);
 router.put('/quizzes/:id', updateQuiz);
 router.delete('/quizzes/:id', deleteQuiz);
