@@ -10,7 +10,7 @@ import '../../styles/games.css';
 export default function GamesPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user, openAuthModal } = useAuth();
+  const { user, loading: authLoading, openAuthModal } = useAuth();
   const [activeGame, setActiveGame] = useState(null);
   const [province, setProvince] = useState(null);
 
@@ -19,6 +19,9 @@ export default function GamesPage() {
 
   // Check auth and unlock status, then fetch province data
   useEffect(() => {
+    // Tunggu verifikasi token / session selesai dulu sebelum cek auth
+    if (authLoading) return;
+
     if (!user) {
       openAuthModal('login');
       navigate('/map-games');
@@ -52,7 +55,7 @@ export default function GamesPage() {
 
     fetchProvince();
     return () => { isMounted = false; };
-  }, [slug, navigate, user, openAuthModal]);
+  }, [slug, navigate, user, authLoading, openAuthModal]);
 
   // Reveal animation on scroll
   useEffect(() => {

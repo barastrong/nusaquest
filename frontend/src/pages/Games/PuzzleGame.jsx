@@ -297,8 +297,6 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
 
   function handleWrongRetry() {
     setCheckResult(null);
-    if (imgRef.current) initPuzzle(imgRef.current);
-    setMoves(0);
   }
 
   function handleRestart() {
@@ -463,7 +461,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
               </button>
             ) : (
               <button className="puzzle-win-btn puzzle-win-btn--retry" onClick={handleWrongRetry}>
-                <FiRefreshCw /> Coba Lagi
+                Lanjutkan Menyusun
               </button>
             )}
           </div>

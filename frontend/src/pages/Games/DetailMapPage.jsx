@@ -13,7 +13,7 @@ import '../../styles/detailmap.css';
 export default function DetailMapPage() {
   const { name } = useParams();
   const navigate = useNavigate();
-  const { user, openAuthModal } = useAuth();
+  const { user, loading: authLoading, openAuthModal } = useAuth();
   const [province, setProvince] = useState(null);
   const [claimed, setClaimed] = useState(false);
   const [canClaim, setCanClaim] = useState(false);
@@ -25,6 +25,9 @@ export default function DetailMapPage() {
     let isMounted = true;
 
     async function loadData() {
+      // Tunggu verifikasi token / session selesai dulu sebelum cek auth
+      if (authLoading) return;
+
       if (!user) {
         openAuthModal('login');
         navigate('/map-games');
@@ -67,7 +70,7 @@ export default function DetailMapPage() {
 
     loadData();
     return () => { isMounted = false; };
-  }, [name, navigate, user, openAuthModal]);
+  }, [name, navigate, user, authLoading, openAuthModal]);
 
   // Reveal animation on scroll
   useEffect(() => {
