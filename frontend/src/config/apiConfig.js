@@ -45,7 +45,13 @@ export const API_ENDPOINTS = {
     detail: (id) => `/regions/${id}`,
   },
   games: {
-    quizzes: (provinceSlug) => `/games/quizzes${provinceSlug ? `?province=${provinceSlug}` : ''}`,
+    quizzes: (provinceSlug, { count = 10, random = true } = {}) => {
+      const params = new URLSearchParams();
+      if (provinceSlug) params.set('province', provinceSlug);
+      params.set('count', String(count));
+      if (!random) params.set('random', 'false');
+      return `/games/quizzes?${params.toString()}`;
+    },
     generateAiQuiz: '/games/quizzes/generate-ai',
     createQuiz: '/games/quizzes',
     updateQuiz: (id) => `/games/quizzes/${id}`,
