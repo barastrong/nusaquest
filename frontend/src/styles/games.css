@@ -257,6 +257,8 @@
 [data-theme="light"] .gsc-desc { color: var(--text2); }
 [data-theme="light"] .gsc-stat { background: rgba(0,0,0,0.03); border-color: rgba(139,94,32,0.14); }
 [data-theme="light"] .gsc-stat:hover { background: rgba(0,0,0,0.05); border-color: rgba(201,168,76,0.3); }
+[data-theme="light"] .highlight-gold { color: #8a6d20 !important; }
+[data-theme="light"] .stat-award-icon { color: #8a6d20; }
 [data-theme="light"] .gsc-stat-value { color: var(--text); }
 [data-theme="light"] .gsc-stat-value.highlight-green { color: #1a6b3f; }
 [data-theme="light"] .gsc-stat-label { color: var(--text3); }
