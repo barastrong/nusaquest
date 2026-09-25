@@ -1,6 +1,22 @@
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nusaquest_secure_jwt_secret_key_2026';
+const envSecret = process.env.JWT_SECRET;
+const JWT_SECRET = envSecret || 'nusaquest_secure_jwt_secret_key_2026';
+
+// Peringatan penting: tanpa JWT_SECRET, backend memakai secret default yang
+// tertulis di kode ini (repo publik) sehingga token siapa pun bisa dipalsukan.
+if (!envSecret) {
+  const advice =
+    'Set JWT_SECRET di backend/.env (nilai acak panjang), lalu restart backend. ' +
+    'Set sekali dan jangan diubah lagi — mengubahnya membuat semua sesi login lama tidak berlaku.';
+  console.warn(
+    '[auth] JWT_SECRET belum diset — memakai secret default dari kode' +
+      (process.env.NODE_ENV === 'production'
+        ? ' (BERBAHAYA di production: token bisa dipalsukan). '
+        : '. ') +
+      advice
+  );
+}
 
 function base64UrlEncode(str) {
   return Buffer.from(str).toString('base64url');
