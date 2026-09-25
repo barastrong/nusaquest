@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 const regions = [
   {
@@ -169,7 +169,6 @@ const regions = [
 ];
 
 export default function MapSVG({ onRegionHover, hoveredRegionId, onRegionClick, selectedRegionId, isRegionSelected, zoom = 1, zoomCenterX = 420, zoomCenterY = 170, panX = 0, panY = 0 }) {
-  const computedStyle = useMemo(() => ({}), []);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   // Find the hovered region's name

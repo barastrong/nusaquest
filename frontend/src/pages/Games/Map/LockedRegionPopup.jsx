@@ -1,9 +1,9 @@
 import '../../../styles/map.css';
 import '../../../styles/guestModal.css';
 import { FiKey, FiLock, FiAlertCircle, FiCompass, FiUserPlus } from "react-icons/fi";
-import { getDifficultyInfo } from '../MapPage';
+import { getDifficultyInfo } from '../../../utils/difficulty';
 import { useAuth } from '../../../context/AuthContext';
-import { GUEST_MAX_PROVINCES } from '../../../utils/localStorage';
+import { GUEST_MAX_PROVINCES } from '../../../utils/progress';
 
 export default function LockedRegionPopup({
   regionName,
@@ -18,7 +18,7 @@ export default function LockedRegionPopup({
   const isGuest = !user;
   const isGuestQuotaReached = isGuest && unlockedCount >= GUEST_MAX_PROVINCES;
   const canUnlock = isGuest ? !isGuestQuotaReached : keyValue >= keyRequired;
-  const { difficulty, label, color, keyReward } = getDifficultyInfo(regionId);
+  const { label, color, keyReward } = getDifficultyInfo(regionId);
   const displayReward = isGuest ? 1 : keyReward;
 
   return (

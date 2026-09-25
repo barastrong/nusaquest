@@ -16,7 +16,11 @@ async function fetchJson(endpoint, options = {}) {
   const response = await fetch(`${API_CONFIG.baseURL}${endpoint}`, config);
   const json = await response.json();
   if (!response.ok) {
-    throw new Error(json.message || 'Permintaan gagal diproses');
+    const error = new Error(json.message || 'Permintaan gagal diproses');
+    error.status = response.status;
+    error.code = json.code;
+    error.data = json;
+    throw error;
   }
   return json;
 }
@@ -79,4 +83,18 @@ export const userApi = {
   claimReward: (data) => fetchJson(API_ENDPOINTS.user.claimReward, { method: 'POST', body: JSON.stringify(data) }),
   getHistory: () => fetchJson(API_ENDPOINTS.user.history),
   syncProgress: (data) => fetchJson(API_ENDPOINTS.user.sync, { method: 'POST', body: JSON.stringify(data) }),
+};
+
+/**
+ * API Mode Tamu — di-key oleh deviceId (tanpa token), datanya tersimpan di
+ * tabel `guest_progress` pada database.
+ */
+export const guestApi = {
+  getProgress: (deviceId) => fetchJson(API_ENDPOINTS.guest.progress(deviceId)),
+  sync: (data) => fetchJson(API_ENDPOINTS.guest.sync, { method: 'POST', body: JSON.stringify(data) }),
+  unlockProvince: (data) => fetchJson(API_ENDPOINTS.guest.unlock, { method: 'POST', body: JSON.stringify(data) }),
+  recordScore: (data) => fetchJson(API_ENDPOINTS.guest.score, { method: 'POST', body: JSON.stringify(data) }),
+  claimReward: (data) => fetchJson(API_ENDPOINTS.guest.claimReward, { method: 'POST', body: JSON.stringify(data) }),
+  markWarningSeen: (data) => fetchJson(API_ENDPOINTS.guest.warningSeen, { method: 'POST', body: JSON.stringify(data) }),
+  reset: (deviceId) => fetchJson(API_ENDPOINTS.guest.reset(deviceId), { method: 'DELETE' }),
 };

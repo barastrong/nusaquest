@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { gameApi, provinceApi } from '../../services/api';
 
 export default function QuizManager() {
@@ -20,7 +20,7 @@ export default function QuizManager() {
     answer_index: 0,
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [quizRes, provRes] = await Promise.all([
@@ -34,11 +34,11 @@ export default function QuizManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProvince]);
 
   useEffect(() => {
     loadData();
-  }, [selectedProvince]);
+  }, [loadData]);
 
   const handleOpenAdd = () => {
     setFormData({

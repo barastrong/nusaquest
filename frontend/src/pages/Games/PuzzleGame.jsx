@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiRefreshCw, FiEye, FiArrowLeft, FiAward, FiCheckCircle, FiKey, FiAlertCircle, FiCheck } from 'react-icons/fi';
-import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
-import { userApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
-import { getDifficultyInfo } from './MapPage';
+import { getDifficultyInfo } from '../../utils/difficulty';
 import '../../styles/puzzle.css';
 
 const GRID = 3; // 3×3 = 9 kepingan — gambar lebih jelas, tidak terpotong
@@ -16,9 +14,38 @@ const DEFAULT_PUZZLES = [
   '/images/provinces/jatim-hero.jpg'
 ];
 
+/** Bagi gambar menjadi kepingan GRID x GRID (fungsi murni, dipakai lintas render) */
+function buildPieces(img, w, h, pw, ph) {
+  const scaleX = w / img.width;
+  const scaleY = h / img.height;
+  const scale = Math.max(scaleX, scaleY);
+  const scaledW = img.width * scale;
+  const scaledH = img.height * scale;
+  const offsetX = (scaledW - w) / 2;
+  const offsetY = (scaledH - h) / 2;
+
+  const pieces = [];
+  for (let row = 0; row < GRID; row++) {
+    for (let col = 0; col < GRID; col++) {
+      pieces.push({
+        id: row * GRID + col,
+        sx: (offsetX + col * pw) / scale,
+        sy: (offsetY + row * ph) / scale,
+        sw: pw / scale,
+        sh: ph / scale,
+        correctX: col * pw,
+        correctY: row * ph,
+        xPos: col * pw,
+        yPos: row * ph,
+      });
+    }
+  }
+  return pieces;
+}
+
 export default function PuzzleGame({ onBack, provinceSlug, province }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasClaimedReward, claimProvinceReward, recordGameScore } = useAuth();
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
   const imgRef = useRef(null);
@@ -27,22 +54,25 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
   const dropTargetRef = useRef(null);
   const sizeRef = useRef({ w: 480, h: 360, pw: 120, ph: 90 });
 
-  // Use dynamic images from province if available (hero + cultures/tourism/culinary)
-  const dynamicImages = [];
-  if (province) {
-    if (province.hero_image || province.heroImage) dynamicImages.push(province.hero_image || province.heroImage);
-    if (Array.isArray(province.culture)) {
-      province.culture.forEach(c => { if (c.image) dynamicImages.push(c.image); });
+  // Use dynamic images from province if available (hero + cultures/tourism/culinary).
+  // useMemo wajib: nilai ini jadi dependency effect pemuatan gambar.
+  const puzzleImages = useMemo(() => {
+    const images = [];
+    if (province) {
+      if (province.hero_image || province.heroImage) images.push(province.hero_image || province.heroImage);
+      if (Array.isArray(province.culture)) {
+        province.culture.forEach(c => { if (c.image) images.push(c.image); });
+      }
+      if (Array.isArray(province.tourism)) {
+        province.tourism.forEach(t => { if (t.image) images.push(t.image); });
+      }
+      if (Array.isArray(province.culinary)) {
+        province.culinary.forEach(c => { if (c.image) images.push(c.image); });
+      }
     }
-    if (Array.isArray(province.tourism)) {
-      province.tourism.forEach(t => { if (t.image) dynamicImages.push(t.image); });
-    }
-    if (Array.isArray(province.culinary)) {
-      province.culinary.forEach(c => { if (c.image) dynamicImages.push(c.image); });
-    }
-  }
+    return images.length > 0 ? images : DEFAULT_PUZZLES;
+  }, [province]);
 
-  const puzzleImages = dynamicImages.length > 0 ? dynamicImages : DEFAULT_PUZZLES;
   const TOTAL_ROUNDS = puzzleImages.length;
 
   const [round, setRound] = useState(0);
@@ -71,35 +101,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
     return { w, h, pw, ph };
   }, []);
 
-  function buildPieces(img, w, h, pw, ph) {
-    const scaleX = w / img.width;
-    const scaleY = h / img.height;
-    const scale = Math.max(scaleX, scaleY);
-    const scaledW = img.width * scale;
-    const scaledH = img.height * scale;
-    const offsetX = (scaledW - w) / 2;
-    const offsetY = (scaledH - h) / 2;
-
-    const pieces = [];
-    for (let row = 0; row < GRID; row++) {
-      for (let col = 0; col < GRID; col++) {
-        pieces.push({
-          id: row * GRID + col,
-          sx: (offsetX + col * pw) / scale,
-          sy: (offsetY + row * ph) / scale,
-          sw: pw / scale,
-          sh: ph / scale,
-          correctX: col * pw,
-          correctY: row * ph,
-          xPos: col * pw,
-          yPos: row * ph,
-        });
-      }
-    }
-    return pieces;
-  }
-
-  function drawPieces(ctx, img, pieces) {
+  const drawPieces = useCallback((ctx, img, pieces) => {
     const { w, h, pw, ph } = sizeRef.current;
     ctx.clearRect(0, 0, w, h);
     pieces.forEach(p => {
@@ -108,9 +110,9 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
       ctx.lineWidth = 1.5;
       ctx.strokeRect(p.xPos + 0.75, p.yPos + 0.75, pw - 1.5, ph - 1.5);
     });
-  }
+  }, []);
 
-  function initPuzzle(img) {
+  const initPuzzle = useCallback((img) => {
     const { w, h, pw, ph } = sizeRef.current;
     const pieces = buildPieces(img, w, h, pw, ph);
     const positions = pieces.map(p => ({ xPos: p.xPos, yPos: p.yPos }));
@@ -121,7 +123,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
     pieces.forEach((p, i) => { p.xPos = positions[i].xPos; p.yPos = positions[i].yPos; });
     piecesRef.current = pieces;
     drawPieces(stageRef.current, img, pieces);
-  }
+  }, [drawPieces]);
 
   // Load image when round changes — use rAF to ensure canvas is rendered first
   useEffect(() => {
@@ -147,7 +149,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
     // rAF ensures CSS aspect-ratio has been applied before we read dimensions
     const raf = requestAnimationFrame(load);
     return () => cancelAnimationFrame(raf);
-  }, [round]);
+  }, [round, computeSize, initPuzzle, puzzleImages]);
 
   // Resize observer — rebuild pieces preserving grid positions
   useEffect(() => {
@@ -180,7 +182,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
     });
     if (canvasRef.current) ro.observe(canvasRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [computeSize, drawPieces]);
 
   function getPos(e) {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -254,50 +256,37 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
     setCheckResult(correct ? 'correct' : 'wrong');
   }
 
-  function handleCorrectNext() {
+  async function handleCorrectNext() {
     setCheckResult(null);
-    if (round + 1 >= TOTAL_ROUNDS) {
-      // Semua round selesai — auto-claim reward
-      if (provinceSlug) {
-        markGameCompleted(provinceSlug, 'puzzle');
-        if (!hasClaimedReward(provinceSlug)) {
-          const { keyReward } = getDifficultyInfo(provinceSlug);
-          const rewardKeys = user ? keyReward : 1;
-          const success = claimProvinceReward(provinceSlug, rewardKeys);
-          if (success) {
-            const userData = getUserData();
-            setRewardToast({ keys: rewardKeys, total: user ? userData.keys : '∞' });
-            setTimeout(() => setRewardToast(null), 4000);
 
-            // Sync claim to backend if authenticated
-            if (user) {
-              userApi.claimReward({
-                deviceId: getDeviceId(),
-                provinceSlug,
-                keyReward: rewardKeys,
-              }).then((res) => {
-                if (res?.success && res?.data) {
-                  syncFromBackend(res.data);
-                }
-              }).catch((err) => console.error('Failed to claim reward on server:', err.message));
-            }
-          }
-        }
-      }
+    if (round + 1 < TOTAL_ROUNDS) {
+      setRound(r => r + 1);
+      return;
+    }
 
-      // Record puzzle completion to server
-      userApi.recordScore({
-        deviceId: getDeviceId(),
-        provinceSlug: provinceSlug || 'nusantara',
+    // Semua round selesai — catat ke database lalu auto-claim reward.
+    // Tamu dan akun memakai jalur API yang berbeda, ditangani AuthContext.
+    if (provinceSlug) {
+      await recordGameScore({
+        provinceSlug,
         gameType: 'puzzle',
         score: Math.max(10, 50 - moves),
         passed: true,
-      }).catch((err) => console.error('Failed to record puzzle score:', err.message));
+      });
 
-      setAllDone(true);
-    } else {
-      setRound(r => r + 1);
+      if (!hasClaimedReward(provinceSlug)) {
+        const { keyReward } = getDifficultyInfo(provinceSlug);
+        const rewardKeys = user ? keyReward : 1;
+        const claim = await claimProvinceReward(provinceSlug, rewardKeys);
+
+        if (claim.success) {
+          setRewardToast({ keys: rewardKeys, total: user ? claim.progress.keys : '∞' });
+          setTimeout(() => setRewardToast(null), 4000);
+        }
+      }
     }
+
+    setAllDone(true);
   }
 
   function handleWrongRetry() {

@@ -1,44 +1,51 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
-import { provinceApi, userApi } from '../../services/api';
+import { provinceApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import { FiKey, FiCheckCircle, FiLock, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
-import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend, getProvinceQuizProgress, hasSeenGuestWarning, setGuestWarningSeen } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
-import { getDifficultyInfo } from '../Games/MapPage';
+import { getDifficultyInfo } from '../../utils/difficulty';
 import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/detailmap.css';
 
 export default function DetailMapPage() {
   const { name } = useParams();
   const navigate = useNavigate();
-  const { user, loading: authLoading, openAuthModal, getProvinceProgress } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    progressLoading,
+    openAuthModal,
+    getProvinceProgress,
+    isRegionUnlocked,
+    hasClaimedReward,
+    canClaimReward,
+    claimProvinceReward,
+    guestWarningSeen,
+    markGuestWarningSeen,
+  } = useAuth();
   const [province, setProvince] = useState(null);
-  const [claimed, setClaimed] = useState(false);
-  const [canClaim, setCanClaim] = useState(false);
+  // Status reward selalu diturunkan dari progres di database
+  const claimed = hasClaimedReward(name);
+  const canClaim = canClaimReward(name);
   const [showClaimAnim, setShowClaimAnim] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isGuestWarningOpen, setIsGuestWarningOpen] = useState(false);
 
-  const quizProgress = getProvinceProgress
-    ? getProvinceProgress(name, 'quiz')
-    : getProvinceQuizProgress(name);
+  const quizProgress = getProvinceProgress(name, 'quiz');
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     let isMounted = true;
 
     async function loadData() {
-      // Tunggu verifikasi token / session selesai dulu sebelum cek data
-      if (authLoading) return;
+      // Tunggu verifikasi token & pemuatan progres selesai sebelum cek data
+      if (authLoading || progressLoading) return;
 
-      // 1. Check unlock status (mendukung Mode Tamu via localStorage)
-      const userData = getUserData();
-      const isUnlocked = userData.unlockedRegions?.includes(name);
-
-      if (!isUnlocked) {
+      // 1. Cek status unlock (tamu maupun akun, sumbernya database)
+      if (!isRegionUnlocked(name)) {
         navigate('/map-games');
         return;
       }
@@ -53,8 +60,6 @@ export default function DetailMapPage() {
             heroImage: res.data.hero_image || res.data.heroImage,
           };
           setProvince(apiProv);
-          setClaimed(hasClaimedReward(name));
-          setCanClaim(canClaimReward(name));
           setLoading(false);
           return;
         }
@@ -70,7 +75,7 @@ export default function DetailMapPage() {
 
     loadData();
     return () => { isMounted = false; };
-  }, [name, navigate, user, authLoading, openAuthModal]);
+  }, [name, navigate, user, authLoading, progressLoading, isRegionUnlocked]);
 
   // Reveal animation on scroll
   useEffect(() => {
@@ -85,33 +90,19 @@ export default function DetailMapPage() {
   const handleClaim = async () => {
     const { keyReward } = getDifficultyInfo(name);
     const rewardKeys = user ? keyReward : 1;
-    const success = claimProvinceReward(name, rewardKeys);
-    if (success) {
-      setClaimed(true);
-      setCanClaim(false);
-      setShowClaimAnim(true);
-      setTimeout(() => setShowClaimAnim(false), 3000);
+    const result = await claimProvinceReward(name, rewardKeys);
 
-      // Persist claim to backend Supabase if authenticated
-      if (user) {
-        try {
-          const res = await userApi.claimReward({
-            deviceId: getDeviceId(),
-            provinceSlug: name,
-            keyReward: rewardKeys,
-          });
-          if (res?.success && res?.data) {
-            syncFromBackend(res.data);
-          }
-        } catch (err) {
-          console.error('Failed to sync claim to server:', err.message);
-        }
-      }
+    if (!result.success) {
+      console.error('Failed to claim reward:', result.message);
+      return;
     }
+
+    setShowClaimAnim(true);
+    setTimeout(() => setShowClaimAnim(false), 3000);
   };
 
   const handleStartGame = () => {
-    if (!user && !hasSeenGuestWarning()) {
+    if (!user && !guestWarningSeen) {
       setIsGuestWarningOpen(true);
       return;
     }
@@ -376,16 +367,16 @@ export default function DetailMapPage() {
       <GuestWarningModal
         isOpen={isGuestWarningOpen}
         onClose={() => {
-          setGuestWarningSeen();
+          markGuestWarningSeen();
           setIsGuestWarningOpen(false);
         }}
         onProceed={() => {
-          setGuestWarningSeen();
+          markGuestWarningSeen();
           setIsGuestWarningOpen(false);
           navigate(`/games/${name}`);
         }}
         onRegister={() => {
-          setGuestWarningSeen();
+          markGuestWarningSeen();
           setIsGuestWarningOpen(false);
           openAuthModal('register');
         }}

@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
-import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend, GUEST_MAX_PROVINCES, hasSeenGuestWarning, setGuestWarningSeen } from '../../utils/localStorage';
-import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { DIFFICULTY_CONFIG, getDifficultyInfo } from '../../utils/difficulty';
 import MapSVG from './/Map/MapSVG';
 import RegionPopup from './Map/RegionPopup';
 import LockedRegionPopup from './Map/LockedRegionPopup';
@@ -13,41 +12,19 @@ import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/map.css';
 import '../../styles/guestModal.css';
 
-export const DIFFICULTY_CONFIG = {
-  mudah:  { unlockCost: 1, keyReward: 2, label: 'Mudah',  color: '#40916C' },
-  sedang: { unlockCost: 2, keyReward: 3, label: 'Sedang', color: '#C9A84C' },
-  susah:  { unlockCost: 3, keyReward: 4, label: 'Susah',  color: '#e74c3c' },
-};
-
-const regionDifficulty = {
-  'aceh': 'mudah', 'sumatera-utara': 'mudah', 'dki-jakarta': 'mudah',
-  'jawa-barat': 'mudah', 'jawa-timur': 'mudah', 'bali': 'mudah',
-  'yogyakarta': 'mudah', 'riau': 'mudah', 'jawa-tengah': 'mudah',
-  'sumatera-barat': 'sedang', 'sumatera-selatan': 'sedang', 'bengkulu': 'sedang',
-  'lampung': 'sedang', 'jambi': 'sedang', 'banten': 'sedang',
-  'bangka-belitung': 'sedang', 'kepulauan-riau': 'sedang',
-  'nusa-tenggara-barat': 'sedang', 'nusa-tenggara-timur': 'sedang',
-  'kalimantan-barat': 'sedang', 'kalimantan-selatan': 'sedang',
-  'sulawesi-utara': 'sedang', 'sulawesi-tengah': 'sedang',
-  'sulawesi-selatan': 'sedang', 'sulawesi-tenggara': 'sedang',
-  'sulawesi-barat': 'sedang', 'maluku': 'sedang',
-  'kalimantan-tengah': 'susah', 'kalimantan-timur': 'susah',
-  'kalimantan-utara': 'susah', 'maluku-utara': 'susah',
-  'gorontalo': 'susah', 'papua-barat': 'susah', 'papua-barat-daya': 'susah',
-  'papua-tengah': 'susah', 'papua-selatan': 'susah',
-  'papua-pegunungan': 'susah', 'papua': 'susah',
-};
-
-export const getDifficultyInfo = (regionId) => {
-  const diff = regionDifficulty[regionId] || 'sedang';
-  return { difficulty: diff, ...DIFFICULTY_CONFIG[diff] };
-};
-
 const TOTAL_PROVINCES = 38;
 
 export default function MapPage() {
   const navigate = useNavigate();
-  const { user, openAuthModal, syncProgressWithBackend } = useAuth();
+  const {
+    user,
+    openAuthModal,
+    userProgress,
+    guestWarningSeen,
+    guestLimit,
+    markGuestWarningSeen,
+    unlockRegion,
+  } = useAuth();
   const [loading, setLoading] = useState(true);
   const [hoveredRegionId, setHoveredRegionId] = useState(null);
   const [selectedRegionId, setSelectedRegionId] = useState(null);
@@ -60,31 +37,16 @@ export default function MapPage() {
   const [zoomCenterY, setZoomCenterY] = useState(170);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
-  const [unlockedRegions, setUnlockedRegions] = useState([]);
-  const [keyValue, setKeyValue] = useState(0);
+  // Progres selalu berasal dari database (dipetakan oleh AuthContext).
+  // Tidak ada lagi pembacaan/sinkronisasi localStorage di sini.
+  const unlockedRegions = userProgress.unlockedRegions || [];
+  const keyValue = userProgress.keys ?? 0;
   const [lockedRegionKeyCost, setLockedRegionKeyCost] = useState(1);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [unlockAnim, setUnlockAnim] = useState(null); // { name, difficulty, color }
   const [isGuestWarningOpen, setIsGuestWarningOpen] = useState(false);
   const [pendingRegion, setPendingRegion] = useState(null);
   const [guestWarningProvince, setGuestWarningProvince] = useState(null);
-
-  // Load from localStorage and sync latest from backend on mount or when user changes
-  useEffect(() => {
-    const data = getUserData();
-    setUnlockedRegions(data.unlockedRegions || []);
-    setKeyValue(data.keys ?? 0);
-
-    // Sync latest from backend to ensure cross-device consistency if authenticated
-    if (user && syncProgressWithBackend) {
-      syncProgressWithBackend().then((synced) => {
-        if (synced) {
-          setUnlockedRegions(synced.unlockedRegions || []);
-          setKeyValue(synced.keys ?? 0);
-        }
-      });
-    }
-  }, [user, syncProgressWithBackend]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
@@ -135,7 +97,7 @@ export default function MapPage() {
     setLockedRegionNamePopup(null);
     setLockedRegionIdPopup(null);
 
-    if (!user && !hasSeenGuestWarning()) {
+    if (!user && !guestWarningSeen) {
       setPendingRegion({
         type: 'unlocked',
         regionId,
@@ -153,7 +115,7 @@ export default function MapPage() {
 
   const handleLockedRegionClick = (regionId, regionName) => {
     const { unlockCost } = getDifficultyInfo(regionId);
-    if (!user && !hasSeenGuestWarning()) {
+    if (!user && !guestWarningSeen) {
       setPendingRegion({
         type: 'locked',
         regionId,
@@ -169,7 +131,7 @@ export default function MapPage() {
   };
 
   const handleProceedGuest = () => {
-    setGuestWarningSeen();
+    markGuestWarningSeen();
     setIsGuestWarningOpen(false);
     if (!pendingRegion) return;
 
@@ -191,56 +153,41 @@ export default function MapPage() {
   };
 
   const handleRegisterFromGuest = () => {
-    setGuestWarningSeen();
+    markGuestWarningSeen();
     setIsGuestWarningOpen(false);
     setPendingRegion(null);
     openAuthModal('register');
   };
 
   const handleCloseGuestWarning = () => {
-    setGuestWarningSeen();
+    markGuestWarningSeen();
     setIsGuestWarningOpen(false);
     setPendingRegion(null);
   };
 
   const handleUnlockRegion = async (regionId, keyCost) => {
     const isGuest = !user;
-    const currentUnlocked = getUserData().unlockedRegions || [];
-    if (isGuest && currentUnlocked.length >= GUEST_MAX_PROVINCES) {
+
+    // Batas 5 provinsi untuk tamu (server juga memaksa batas ini)
+    if (isGuest && unlockedRegions.length >= guestLimit) {
       openAuthModal('register');
       return;
     }
 
-    const success = unlockRegionLS(regionId, isGuest ? 0 : keyCost, isGuest);
-    if (success) {
-      const data = getUserData();
-      setKeyValue(data.keys ?? 0);
-      setUnlockedRegions(data.unlockedRegions || []);
-      const provName = lockedRegionNamePopup;
-      setLockedRegionNamePopup(null);
-      setLockedRegionIdPopup(null);
-      // Trigger unlock animation
-      const { label, color } = getDifficultyInfo(regionId);
-      setUnlockAnim({ name: provName, difficulty: label, color });
+    const result = await unlockRegion(regionId, keyCost);
 
-      // Persist unlock to Supabase backend if authenticated
-      if (user) {
-        try {
-          const res = await userApi.unlockProvince({
-            deviceId: getDeviceId(),
-            provinceSlug: regionId,
-            keyCost,
-          });
-          if (res?.success && res?.data) {
-            const synced = syncFromBackend(res.data);
-            setKeyValue(synced.keys ?? 0);
-            setUnlockedRegions(synced.unlockedRegions || []);
-          }
-        } catch (err) {
-          console.error('Failed to sync unlock to backend:', err.message);
-        }
-      }
+    if (!result.success) {
+      console.error('Failed to unlock province:', result.message);
+      return;
     }
+
+    const provName = lockedRegionNamePopup;
+    setLockedRegionNamePopup(null);
+    setLockedRegionIdPopup(null);
+
+    // Trigger unlock animation
+    const { label, color } = getDifficultyInfo(regionId);
+    setUnlockAnim({ name: provName, difficulty: label, color });
   };
 
   if (loading) {

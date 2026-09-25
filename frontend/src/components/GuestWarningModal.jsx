@@ -51,9 +51,9 @@ export default function GuestWarningModal({ isOpen, onClose, onProceed, onRegist
               <FiSave size={18} />
             </div>
             <div className="gwm-point-text">
-              <span className="gwm-point-head">Progres Tersimpan Sementara</span>
+              <span className="gwm-point-head">Progres Tersimpan di Server</span>
               <span className="gwm-point-desc">
-                Kunci, skor kuis, dan data provinsi tersimpan di browser perangkat ini.
+                Kunci, skor kuis, dan data provinsi tersimpan di server dan terikat pada perangkat ini.
               </span>
             </div>
           </div>

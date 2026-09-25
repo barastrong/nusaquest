@@ -24,6 +24,15 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // AuthProvider dan hook useAuth memang satu file (pola umum React context).
+      'react-refresh/only-export-components': ['error', { allowExportNames: ['useAuth'] }],
+    },
+  },
+  {
+    // File konfigurasi build berjalan di Node (butuh global `process`), bukan di browser
+    files: ['*.config.js', 'vite.config.js'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])

@@ -9,29 +9,30 @@ import GamesPage from './pages/Games/GamesPage';
 import MapsPage from './pages/Games/MapPage';
 import MapsPageDetail from './pages/Games/DetailMapPage';
 import AdminDashboard from './pages/Admin/AdminDashboard';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthModal from './components/AuthModal';
 import GameHistoryModal from './components/GameHistoryModal';
 import GuestKeyRewardModal from './components/GuestKeyRewardModal';
-import { getUserData, getTheme, resetUserData } from './utils/localStorage';
+import { getTheme } from './utils/theme';
 
 function AppContent() {
   const location = useLocation();
+  const { resetProgress } = useAuth();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
   useEffect(() => {
-    getUserData();
-    const theme = getTheme();
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', getTheme());
 
-    window.resetData = () => {
-      resetUserData();
+    // Helper debug: reset progres Mode Tamu untuk perangkat ini.
+    // Progres tamu disimpan di database, jadi reset juga lewat API.
+    window.resetData = async () => {
+      await resetProgress();
       window.location.reload();
     };
-  }, []);
+  }, [resetProgress]);
 
   const hideFooter =
     location.pathname === '/map' ||

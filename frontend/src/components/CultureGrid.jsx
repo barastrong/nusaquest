@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import '../styles/culture.css';
 
 // ── Gambar card (tampilan grid) ──
@@ -95,7 +94,6 @@ const cultures = [
 ];
 
 export default function CultureGrid() {
-  const navigate = useNavigate();
   const [selected, setSelected] = useState(null);
 
   const handleClose = () => setSelected(null);

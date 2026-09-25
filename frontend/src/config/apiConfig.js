@@ -63,4 +63,13 @@ export const API_ENDPOINTS = {
     history: '/user/history',
     sync: '/user/sync',
   },
+  guest: {
+    progress: (deviceId) => `/guest/progress/${encodeURIComponent(deviceId)}`,
+    reset: (deviceId) => `/guest/progress/${encodeURIComponent(deviceId)}`,
+    sync: '/guest/sync',
+    unlock: '/guest/unlock',
+    score: '/guest/score',
+    claimReward: '/guest/claim',
+    warningSeen: '/guest/warning-seen',
+  },
 };

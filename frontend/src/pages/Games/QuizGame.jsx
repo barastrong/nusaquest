@@ -1,19 +1,9 @@
 import { useState, useEffect } from 'react';
 import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw, FiAward, FiClock, FiRotateCw } from 'react-icons/fi';
 import { ClipLoader } from 'react-spinners';
-import { gameApi, userApi } from '../../services/api';
-import {
-  markGameCompleted,
-  claimProvinceReward,
-  hasClaimedReward,
-  getUserData,
-  getDeviceId,
-  syncFromBackend,
-  recordQuizAttempt,
-  getProvinceQuizProgress,
-} from '../../utils/localStorage';
+import { gameApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { getDifficultyInfo } from './MapPage';
+import { getDifficultyInfo } from '../../utils/difficulty';
 import successSfx from '../../sounds/success.mp3';
 import failedSfx from '../../sounds/failed.mp3';
 
@@ -25,7 +15,13 @@ const playSfx = (ok) => {
 };
 
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
-  const { user, getProvinceProgress, syncProgressWithBackend, fetchHistory } = useAuth();
+  const {
+    user,
+    getProvinceProgress,
+    hasClaimedReward,
+    claimProvinceReward,
+    recordGameScore,
+  } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [qIdx, setQIdx] = useState(0);
@@ -39,9 +35,7 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   const [alreadyClaimed] = useState(() => provinceSlug ? hasClaimedReward(provinceSlug) : false);
   const [postQuizStats, setPostQuizStats] = useState(null);
 
-  const prevProgress = getProvinceProgress
-    ? getProvinceProgress(provinceSlug, 'quiz')
-    : getProvinceQuizProgress(provinceSlug);
+  const prevProgress = getProvinceProgress(provinceSlug, 'quiz');
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -94,57 +88,39 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
       setConfetti(pieces);
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setFeedback(null);
       setConfetti([]);
       if (qIdx + 1 >= questions.length) {
         const finalScore = newScore;
         const passed = finalScore >= PASS_THRESHOLD;
 
-        let recordedStat = null;
+        // Catat percobaan ke database — tamu maupun akun sama-sama tercatat.
+        let recorded = null;
         if (provinceSlug) {
-          recordedStat = recordQuizAttempt(provinceSlug, finalScore, passed);
-          markGameCompleted(provinceSlug, 'quiz');
+          recorded = await recordGameScore({
+            provinceSlug,
+            gameType: 'quiz',
+            score: finalScore,
+            passed,
+          });
+
           if (passed && !hasClaimedReward(provinceSlug)) {
             const { keyReward } = getDifficultyInfo(provinceSlug);
             const rewardKeys = user ? keyReward : 1;
-            const success = claimProvinceReward(provinceSlug, rewardKeys);
-            if (success) {
-              const userData = getUserData();
-              setRewardToast({ keys: rewardKeys, total: user ? userData.keys : '∞' });
-              setTimeout(() => setRewardToast(null), 4000);
+            const claim = await claimProvinceReward(provinceSlug, rewardKeys);
 
-              // Sync claim to backend
-              if (user) {
-                userApi.claimReward({
-                  deviceId: getDeviceId(),
-                  provinceSlug,
-                  keyReward: rewardKeys,
-                }).then((res) => {
-                  if (res?.success && res?.data) {
-                    syncFromBackend(res.data);
-                  }
-                }).catch((err) => console.error('Failed to claim reward on server:', err.message));
-              }
+            if (claim.success) {
+              setRewardToast({ keys: rewardKeys, total: user ? claim.progress.keys : '∞' });
+              setTimeout(() => setRewardToast(null), 4000);
             }
           }
         }
 
-        // Record score to server / user history
-        userApi.recordScore({
-          deviceId: getDeviceId(),
-          provinceSlug: provinceSlug || 'general',
-          gameType: 'quiz',
-          score: finalScore,
-          passed,
-        }).then(() => {
-          if (syncProgressWithBackend) syncProgressWithBackend();
-          if (fetchHistory) fetchHistory();
-        }).catch((err) => console.error('Failed to record quiz score:', err.message));
-
+        const recordedStat = recorded?.provinceStats;
         setPostQuizStats({
-          attempts: recordedStat?.attempts || (prevProgress.attempts || 0) + 1,
-          highScore: recordedStat?.highScore || Math.max(prevProgress.highScore || 0, finalScore),
+          attempts: recordedStat?.attempts ?? (prevProgress.attempts || 0) + 1,
+          highScore: recordedStat?.high_score ?? Math.max(prevProgress.highScore || 0, finalScore),
           isCompleted: Boolean(recordedStat?.passed || prevProgress.isCompleted || passed),
           isNewRecord: prevProgress.attempts > 0 && finalScore > (prevProgress.highScore || 0),
         });

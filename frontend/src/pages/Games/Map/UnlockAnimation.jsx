@@ -56,6 +56,13 @@ function drawParticles(canvas) {
 
 export default function UnlockAnimation({ regionName, difficulty, color, onDone }) {
   const canvasRef = useRef(null);
+  // Simpan callback terbaru di ref supaya timer animasi tidak ikut restart
+  // saat parent re-render (onDone dibuat inline oleh parent tiap render).
+  const onDoneRef = useRef(onDone);
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
 
   useEffect(() => {
     // Start particles after key animation (0.8s delay)
@@ -64,7 +71,9 @@ export default function UnlockAnimation({ regionName, difficulty, color, onDone 
     }, 800);
 
     // Auto-close after 3.2s
-    const done = setTimeout(onDone, 3200);
+    const done = setTimeout(() => {
+      if (onDoneRef.current) onDoneRef.current();
+    }, 3200);
     return () => { clearTimeout(t); clearTimeout(done); };
   }, []);
 

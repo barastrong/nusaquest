@@ -4,7 +4,6 @@ import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
-import { getUserData, hasSeenGuestWarning, setGuestWarningSeen } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/games.css';
@@ -13,7 +12,16 @@ import '../../styles/guestModal.css';
 export default function GamesPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user, loading: authLoading, openAuthModal, getProvinceProgress, userProgress } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    progressLoading,
+    openAuthModal,
+    getProvinceProgress,
+    isRegionUnlocked,
+    guestWarningSeen,
+    markGuestWarningSeen,
+  } = useAuth();
   const [activeGame, setActiveGame] = useState(null);
   const [province, setProvince] = useState(null);
   const [isGuestWarningOpen, setIsGuestWarningOpen] = useState(false);
@@ -27,13 +35,12 @@ export default function GamesPage() {
 
   // Check unlock status, then fetch province data (supports Guest Mode)
   useEffect(() => {
-    // Tunggu verifikasi token / session selesai dulu sebelum cek data
-    if (authLoading) return;
+    // Tunggu verifikasi token & pemuatan progres selesai sebelum cek data
+    if (authLoading || progressLoading) return;
 
     if (!slug) return;
 
-    const userData = getUserData();
-    const isUnlocked = userData.unlockedRegions?.includes(slug);
+    const isUnlocked = isRegionUnlocked(slug);
     if (!isUnlocked) {
       navigate('/map-games');
       return;
@@ -57,7 +64,7 @@ export default function GamesPage() {
 
     fetchProvince();
     return () => { isMounted = false; };
-  }, [slug, navigate, user, authLoading, openAuthModal]);
+  }, [slug, navigate, user, authLoading, progressLoading, isRegionUnlocked]);
 
   // Reveal animation on scroll
   useEffect(() => {
@@ -80,7 +87,7 @@ export default function GamesPage() {
   };
 
   const handleLaunchGame = (gameType) => {
-    if (!user && !hasSeenGuestWarning()) {
+    if (!user && !guestWarningSeen) {
       setPendingGame(gameType);
       setIsGuestWarningOpen(true);
       return;
@@ -273,12 +280,12 @@ export default function GamesPage() {
       <GuestWarningModal
         isOpen={isGuestWarningOpen}
         onClose={() => {
-          setGuestWarningSeen();
+          markGuestWarningSeen();
           setIsGuestWarningOpen(false);
           setPendingGame(null);
         }}
         onProceed={() => {
-          setGuestWarningSeen();
+          markGuestWarningSeen();
           setIsGuestWarningOpen(false);
           if (pendingGame) {
             setActiveGame(pendingGame);
@@ -286,7 +293,7 @@ export default function GamesPage() {
           }
         }}
         onRegister={() => {
-          setGuestWarningSeen();
+          markGuestWarningSeen();
           setIsGuestWarningOpen(false);
           setPendingGame(null);
           openAuthModal('register');

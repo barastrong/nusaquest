@@ -9,12 +9,15 @@ import '../../styles/detailmap.css';
 export default function DetailMapPage() {
   const { name } = useParams();
   const navigate = useNavigate();
-  const [province, setProvince] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Data disimpan bersama slug-nya, sehingga status loading bisa diturunkan
+  // langsung (tidak perlu setState di dalam effect).
+  const [loaded, setLoaded] = useState({ slug: null, province: null });
+
+  const loading = loaded.slug !== name;
+  const province = loaded.slug === name ? loaded.province : null;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-    setLoading(true);
 
     let isMounted = true;
 
@@ -22,11 +25,13 @@ export default function DetailMapPage() {
       try {
         const res = await provinceApi.getBySlug(name);
         if (isMounted && res.data) {
-          setProvince({
-            ...res.data,
-            heroImage: res.data.hero_image || res.data.heroImage,
+          setLoaded({
+            slug: name,
+            province: {
+              ...res.data,
+              heroImage: res.data.hero_image || res.data.heroImage,
+            },
           });
-          setLoading(false);
           return;
         }
       } catch (err) {
@@ -34,8 +39,8 @@ export default function DetailMapPage() {
       }
 
       if (isMounted) {
+        setLoaded({ slug: name, province: null });
         navigate('/map');
-        setLoading(false);
       }
     }
 

@@ -9,6 +9,7 @@ import {
   updatePendingOtp,
   verifyRegistrationOtp,
 } from '../utils/otpStore.js';
+import { ensureUserProgressRow, transferGuestProgress } from '../utils/progressMerge.js';
 
 /**
  * Step 1 Registrasi: Validasi data, buat OTP 6 digit, dan kirim ke email
@@ -161,47 +162,9 @@ export const verifyOtp = async (req, res) => {
 
     if (insertErr) throw insertErr;
 
-    // Hubungkan atau buat user_progress
-    if (deviceId) {
-      const { data: existingProgress } = await supabase
-        .from('user_progress')
-        .select('id, user_id, keys')
-        .eq('device_id', deviceId)
-        .maybeSingle();
-
-      if (existingProgress && !existingProgress.user_id) {
-        await supabase
-          .from('user_progress')
-          .update({
-            user_id: newUser.id,
-            keys: Math.max(existingProgress.keys || 0, 1),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingProgress.id);
-      } else {
-        await supabase.from('user_progress').insert({
-          user_id: newUser.id,
-          device_id: deviceId,
-          keys: 1,
-          total_score: 0,
-          games_played: 0,
-          unlocked_provinces: [],
-          completed_games: {},
-          claimed_rewards: [],
-        });
-      }
-    } else {
-      await supabase.from('user_progress').insert({
-        user_id: newUser.id,
-        device_id: `user_${newUser.id}`,
-        keys: 1,
-        total_score: 0,
-        games_played: 0,
-        unlocked_provinces: [],
-        completed_games: {},
-        claimed_rewards: [],
-      });
-    }
+    // Pindahkan SELURUH progres Mode Tamu dari perangkat ini ke akun baru.
+    // Ini satu-satunya titik transfer: login ke akun lain TIDAK menyentuh data tamu.
+    const guestTransfer = await transferGuestProgress(deviceId, newUser.id);
 
     const token = createToken({
       id: newUser.id,
@@ -214,6 +177,11 @@ export const verifyOtp = async (req, res) => {
       message: 'Email berhasil diverifikasi! Akun kamu telah aktif.',
       token,
       user: newUser,
+      guestTransfer: {
+        transferred: guestTransfer.transferred,
+        completedCount: guestTransfer.completedCount,
+        bonusKeys: guestTransfer.bonusKeys,
+      },
     });
   } catch (error) {
     console.error('Error in verifyOtp:', error);
@@ -338,47 +306,8 @@ export const register = async (req, res) => {
 
     if (insertErr) throw insertErr;
 
-    // Link or create user_progress
-    if (deviceId) {
-      const { data: existingProgress } = await supabase
-        .from('user_progress')
-        .select('id, user_id, keys')
-        .eq('device_id', deviceId)
-        .maybeSingle();
-
-      if (existingProgress && !existingProgress.user_id) {
-        await supabase
-          .from('user_progress')
-          .update({
-            user_id: newUser.id,
-            keys: Math.max(existingProgress.keys || 0, 1),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingProgress.id);
-      } else {
-        await supabase.from('user_progress').insert({
-          user_id: newUser.id,
-          device_id: deviceId,
-          keys: 1,
-          total_score: 0,
-          games_played: 0,
-          unlocked_provinces: [],
-          completed_games: {},
-          claimed_rewards: [],
-        });
-      }
-    } else {
-      await supabase.from('user_progress').insert({
-        user_id: newUser.id,
-        device_id: `user_${newUser.id}`,
-        keys: 1,
-        total_score: 0,
-        games_played: 0,
-        unlocked_provinces: [],
-        completed_games: {},
-        claimed_rewards: [],
-      });
-    }
+    // Pindahkan SELURUH progres Mode Tamu dari perangkat ini ke akun baru.
+    const guestTransfer = await transferGuestProgress(deviceId, newUser.id);
 
     const token = createToken({
       id: newUser.id,
@@ -391,6 +320,11 @@ export const register = async (req, res) => {
       message: 'Registrasi berhasil.',
       token,
       user: newUser,
+      guestTransfer: {
+        transferred: guestTransfer.transferred,
+        completedCount: guestTransfer.completedCount,
+        bonusKeys: guestTransfer.bonusKeys,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -399,7 +333,7 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { identifier, password, deviceId } = req.body;
+    const { identifier, password } = req.body;
 
     if (!identifier || !password) {
       return res.status(400).json({
@@ -436,40 +370,10 @@ export const login = async (req, res) => {
       });
     }
 
-    // If deviceId provided and user has no progress linked, link it
-    if (deviceId) {
-      const { data: userProg } = await supabase
-        .from('user_progress')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!userProg) {
-        const { data: devProg } = await supabase
-          .from('user_progress')
-          .select('id, user_id')
-          .eq('device_id', deviceId)
-          .maybeSingle();
-
-        if (devProg && !devProg.user_id) {
-          await supabase
-            .from('user_progress')
-            .update({ user_id: user.id, updated_at: new Date().toISOString() })
-            .eq('id', devProg.id);
-        } else if (!devProg) {
-          await supabase.from('user_progress').insert({
-            user_id: user.id,
-            device_id: deviceId,
-            keys: 1,
-            total_score: 0,
-            games_played: 0,
-            unlocked_provinces: [],
-            completed_games: {},
-            claimed_rewards: [],
-          });
-        }
-      }
-    }
+    // Pastikan akun punya baris progres sendiri (1 baris per user_id).
+    // CATATAN: data Mode Tamu di perangkat ini TIDAK diambil di sini —
+    // transfer data tamu hanya terjadi saat REGISTER.
+    await ensureUserProgressRow(user.id);
 
     const token = createToken({
       id: user.id,

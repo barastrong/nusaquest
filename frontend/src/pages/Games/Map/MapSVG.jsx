@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FiLock, FiKey } from 'react-icons/fi';
-import { getDifficultyInfo } from '../MapPage';
+import { getDifficultyInfo } from '../../../utils/difficulty';
 
 const regions = [
   {

@@ -72,15 +72,35 @@ CREATE TABLE IF NOT EXISTS public.puzzles (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Progres akun (1 baris = 1 user). Dihubungkan ke public.users(user_id).
+-- Lihat juga: database/migrations/001_guest_progress.sql
 CREATE TABLE IF NOT EXISTS public.user_progress (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    device_id TEXT UNIQUE NOT NULL,
+    user_id BIGINT UNIQUE,
+    device_id TEXT,
     keys INT DEFAULT 1,
     total_score INT DEFAULT 0,
     games_played INT DEFAULT 0,
     unlocked_provinces JSONB DEFAULT '[]'::jsonb,
     completed_games JSONB DEFAULT '{}'::jsonb,
     claimed_rewards JSONB DEFAULT '[]'::jsonb,
+    quiz_stats JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Progres Mode Tamu (per perangkat, tanpa akun)
+CREATE TABLE IF NOT EXISTS public.guest_progress (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    device_id TEXT UNIQUE NOT NULL,
+    keys INT DEFAULT 0,
+    total_score INT DEFAULT 0,
+    games_played INT DEFAULT 0,
+    unlocked_provinces JSONB DEFAULT '[]'::jsonb,
+    completed_games JSONB DEFAULT '{}'::jsonb,
+    claimed_rewards JSONB DEFAULT '[]'::jsonb,
+    quiz_stats JSONB DEFAULT '{}'::jsonb,
+    guest_warning_seen BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -93,6 +113,7 @@ ALTER TABLE public.culinaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quizzes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.puzzles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guest_progress ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public read regions" ON public.regions FOR SELECT USING (true);
 CREATE POLICY "Public read provinces" ON public.provinces FOR SELECT USING (true);
@@ -105,3 +126,8 @@ CREATE POLICY "Public read puzzles" ON public.puzzles FOR SELECT USING (true);
 CREATE POLICY "Public read user_progress" ON public.user_progress FOR SELECT USING (true);
 CREATE POLICY "Public insert user_progress" ON public.user_progress FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public update user_progress" ON public.user_progress FOR UPDATE USING (true);
+
+CREATE POLICY "Public read guest_progress" ON public.guest_progress FOR SELECT USING (true);
+CREATE POLICY "Public insert guest_progress" ON public.guest_progress FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public update guest_progress" ON public.guest_progress FOR UPDATE USING (true);
+CREATE POLICY "Public delete guest_progress" ON public.guest_progress FOR DELETE USING (true);

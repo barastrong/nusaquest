@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { getDifficultyInfo } from '../MapPage';
+import { getDifficultyInfo } from '../../../utils/difficulty';
 import { FiKey, FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
-import { getProvinceQuizProgress } from '../../../utils/localStorage';
 
 const nameToSlug = {
   'Aceh': 'aceh', 'Sumatera Utara': 'sumatera-utara', 'Sumatera Barat': 'sumatera-barat',
@@ -29,9 +28,7 @@ export default function RegionPopup({ regionName, regionId, onClose }) {
   const displayReward = !user ? 1 : keyReward;
 
   const slug = regionId || nameToSlug[regionName] || regionName.toLowerCase().replace(/\s+/g, '-');
-  const progress = getProvinceProgress
-    ? getProvinceProgress(slug, 'quiz')
-    : getProvinceQuizProgress(slug);
+  const progress = getProvinceProgress(slug, 'quiz');
 
   const handleDetailClick = () => {
     onClose();
