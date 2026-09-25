@@ -87,20 +87,34 @@ const fetchAiWithProxy = async (url, options) => {
   throw lastError;
 };
 
+/**
+ * GET /api/games/quizzes?province=<slug>&count=<n>&random=<bool>
+ *
+ * Mengembalikan kuis untuk satu provinsi (atau fallback ke 'general' bila provinsi
+ * tersebut belum punya soal). Mendukung dua mode pemilihan:
+ *
+ * - random=true  (default untuk frontend): ambil `count` soal secara acak.
+ *                 Bila jumlah soal di database kurang dari `count`, kembalikan
+ *                 sebanyak yang tersedia - UI menampilkan ini apa adanya.
+ *                 Default count: 10.
+ * - random=false (mode admin / debug): kembalikan semua soal urut id.
+ */
 export const getQuizzesByProvince = async (req, res) => {
   try {
     const { province } = req.query;
+    const wantsRandom = String(req.query.random ?? 'true').toLowerCase() !== 'false';
+    const requestedCount = Math.max(1, Math.min(50, parseInt(req.query.count ?? '10', 10) || 10));
 
-    let query = supabase.from('quizzes').select('id, province_slug, question, options, answer_index');
-
-    if (province) {
-      query = query.eq('province_slug', province);
-    }
+    let query = supabase
+      .from('quizzes')
+      .select('id, province_slug, question, options, answer_index')
+      .eq('province_slug', province);
 
     let { data: quizzes, error } = await query;
     if (error) throw error;
 
-    if (province && (!quizzes || quizzes.length === 0)) {
+    // Fallback ke kumpulan soal 'general' bila provinsi belum punya soal sendiri.
+    if ((!quizzes || quizzes.length === 0) && province) {
       const { data: generalQuizzes, error: genError } = await supabase
         .from('quizzes')
         .select('id, province_slug, question, options, answer_index')
@@ -110,7 +124,31 @@ export const getQuizzesByProvince = async (req, res) => {
       quizzes = generalQuizzes || [];
     }
 
-    res.json({ success: true, data: quizzes || [] });
+    if (!quizzes || quizzes.length === 0) {
+      return res.json({ success: true, data: [], total: 0, requested: requestedCount });
+    }
+
+    let selected = quizzes;
+    if (wantsRandom && quizzes.length > 1) {
+      // Fisher-Yates shuffle - adil dan deterministik per request
+      selected = quizzes.slice();
+      for (let i = selected.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [selected[i], selected[j]] = [selected[j], selected[i]];
+      }
+    }
+
+    if (selected.length > requestedCount) {
+      selected = selected.slice(0, requestedCount);
+    }
+
+    res.json({
+      success: true,
+      data: selected,
+      total: quizzes.length,
+      requested: requestedCount,
+      randomized: wantsRandom,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -23,6 +23,19 @@ const playSfx = (ok) => {
  */
 const FEEDBACK_DURATION_MS = { correct: 900, wrong: 2500 };
 
+// Konstanta kuis — target 10 soal acak per sesi kuis agar retensi lebih kuat
+// dan setiap percobaan menantang. Backend fallback ke jumlah tersedia bila kurang.
+const QUIZ_QUESTION_COUNT = 10;
+
+/**
+ * PASS_THRESHOLD konsisten di 60% (bukan 60% untuk 5 soal tapi 70% untuk 10 soal).
+ * `Math.round` daripada `Math.ceil`:
+ *   5 soal → round(3.0) = 3  benar (60%)
+ *  10 soal → round(6.0) = 6  benar (60%)
+ *  15 soal → round(9.0) = 9  benar (60%)
+ */
+const PASS_RATIO = 0.6;
+
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   const {
     user,
@@ -53,7 +66,10 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     let isMounted = true;
     async function fetchQuizzes() {
       try {
-        const res = await gameApi.getQuizzes(provinceSlug || 'general');
+        const res = await gameApi.getQuizzes(provinceSlug || 'general', {
+          count: QUIZ_QUESTION_COUNT,
+          random: true,
+        });
         if (isMounted && res.data && res.data.length > 0) {
           const mapped = res.data.map(q => ({
             q: q.question,
@@ -73,7 +89,7 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     return () => { isMounted = false; };
   }, [provinceSlug]);
 
-  const PASS_THRESHOLD = Math.ceil(questions.length * 0.6);
+  const PASS_THRESHOLD = Math.max(1, Math.round(questions.length * PASS_RATIO));
   const currentQuestion = questions[qIdx] || null;
 
   const handleAnswer = (i) => {
