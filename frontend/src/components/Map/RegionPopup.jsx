@@ -1,11 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
-import { getProvinceQuizProgress } from '../../utils/localStorage';
 
 export default function RegionPopup({ regionName, onClose }) {
   const navigate = useNavigate();
-  const { getProvinceProgress } = useAuth();
 
   // Map nama provinsi ke slug yang sesuai dengan provinceDetailData
   const nameToSlug = {
@@ -50,9 +46,6 @@ export default function RegionPopup({ regionName, onClose }) {
   };
 
   const slug = nameToSlug[regionName] || regionName.toLowerCase().replace(/\s+/g, '-');
-  const progress = getProvinceProgress
-    ? getProvinceProgress(slug, 'quiz')
-    : getProvinceQuizProgress(slug);
 
   const handleDetailClick = () => {
     const targetUrl = `/detailmap/${slug}`;
@@ -74,35 +67,6 @@ export default function RegionPopup({ regionName, onClose }) {
         </div>
 
         <div className="popup-content">
-          {/* Progress Tracker Pengerjaan */}
-          <div className="popup-progress-tracker">
-            <div className="ppt-header">
-              <span className="ppt-title">Status Belajar:</span>
-              <span className={`ppt-status-tag ${progress.isCompleted ? 'status-completed' : progress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
-                {progress.isCompleted ? (
-                  <><FiCheckCircle /> Sudah Selesai</>
-                ) : progress.hasAttempted ? (
-                  <><FiRotateCw /> Sedang Belajar</>
-                ) : (
-                  <><FiClock /> Belum Dikerjakan</>
-                )}
-              </span>
-            </div>
-
-            <div className="ppt-stats-grid">
-              <div className="ppt-stat-col">
-                <span className="ppt-stat-label">Jumlah Percobaan</span>
-                <span className="ppt-stat-val">{progress.attempts > 0 ? `${progress.attempts} kali` : '0 kali'}</span>
-              </div>
-              <div className="ppt-stat-col">
-                <span className="ppt-stat-label">Skor Tertinggi</span>
-                <span className="ppt-stat-val highlight-gold">
-                  <FiAward className="stat-award-icon" /> {progress.attempts > 0 ? `${progress.highScore}/5` : '-'}
-                </span>
-              </div>
-            </div>
-          </div>
-
           <p className="popup-detail-text">
             Pelajari kebudayaan, sejarah daerah, kuliner, dan destinasi wisata khas {regionName}.
           </p>
