@@ -4,7 +4,7 @@ import { FiKey, FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/
 import { useAuth } from '../../../context/AuthContext';
 import { getProvinceQuizProgress } from '../../../utils/localStorage';
 
-const nameToSlug = {
+const nameToSlug = {SXDDSAD
   'Aceh': 'aceh', 'Sumatera Utara': 'sumatera-utara', 'Sumatera Barat': 'sumatera-barat',
   'Riau': 'riau', 'Kepulauan Riau': 'kepulauan-riau', 'Jambi': 'jambi',
   'Sumatera Selatan': 'sumatera-selatan', 'Bengkulu': 'bengkulu', 'Lampung': 'lampung',
@@ -24,8 +24,9 @@ const nameToSlug = {
 
 export default function RegionPopup({ regionName, regionId, onClose }) {
   const navigate = useNavigate();
-  const { getProvinceProgress } = useAuth();
+  const { getProvinceProgress, user } = useAuth();
   const { label, color, keyReward } = getDifficultyInfo(regionId);
+  const displayReward = !user ? 1 : keyReward;
 
   const slug = regionId || nameToSlug[regionName] || regionName.toLowerCase().replace(/\s+/g, '-');
   const progress = getProvinceProgress
@@ -50,7 +51,7 @@ export default function RegionPopup({ regionName, regionId, onClose }) {
                 Level: {label}
               </span>
               <span style={{ fontSize: 12, color: '#C9A84C', display: 'flex', alignItems: 'center', gap: 3 }}>
-                +{keyReward} <FiKey size={11} /> reward
+                +{displayReward} <FiKey size={11} /> reward
               </span>
             </div>
           </div>

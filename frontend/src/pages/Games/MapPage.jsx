@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
-import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend, GUEST_MAX_PROVINCES } from '../../utils/localStorage';
+import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend, GUEST_MAX_PROVINCES, hasSeenGuestWarning, setGuestWarningSeen } from '../../utils/localStorage';
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import MapSVG from './/Map/MapSVG';
@@ -135,7 +135,7 @@ export default function MapPage() {
     setLockedRegionNamePopup(null);
     setLockedRegionIdPopup(null);
 
-    if (!user) {
+    if (!user && !hasSeenGuestWarning()) {
       setPendingRegion({
         type: 'unlocked',
         regionId,
@@ -153,7 +153,7 @@ export default function MapPage() {
 
   const handleLockedRegionClick = (regionId, regionName) => {
     const { unlockCost } = getDifficultyInfo(regionId);
-    if (!user) {
+    if (!user && !hasSeenGuestWarning()) {
       setPendingRegion({
         type: 'locked',
         regionId,
@@ -169,6 +169,7 @@ export default function MapPage() {
   };
 
   const handleProceedGuest = () => {
+    setGuestWarningSeen();
     setIsGuestWarningOpen(false);
     if (!pendingRegion) return;
 
@@ -190,12 +191,14 @@ export default function MapPage() {
   };
 
   const handleRegisterFromGuest = () => {
+    setGuestWarningSeen();
     setIsGuestWarningOpen(false);
     setPendingRegion(null);
     openAuthModal('register');
   };
 
   const handleCloseGuestWarning = () => {
+    setGuestWarningSeen();
     setIsGuestWarningOpen(false);
     setPendingRegion(null);
   };
@@ -295,7 +298,7 @@ export default function MapPage() {
 
                 <div className="htp-notice">
                   <span className="htp-notice-icon"><FiGift /></span>
-                  <span>{user ? 'Kumpulkan kunci dengan menyelesaikan tantangan untuk membuka provinsi!' : 'Mode Tamu: Kumpulkan kunci dan buka hingga 5 provinsi secara gratis!'}</span>
+                  <span>{user ? 'Kumpulkan kunci dengan menyelesaikan tantangan untuk membuka provinsi!' : 'Mode Tamu: Buka hingga 5 provinsi secara gratis dan dapatkan +1 reward kunci di setiap provinsi!'}</span>
                 </div>
 
                 <div className="htp-flow">
@@ -338,8 +341,8 @@ export default function MapPage() {
                   {Object.entries(DIFFICULTY_CONFIG).map(([key, cfg]) => (
                     <div key={key} className="htp-level-row">
                       <span className="htp-badge" style={{ background: cfg.color + '22', color: cfg.color, border: `1px solid ${cfg.color}` }}>{cfg.label}</span>
-                      <span className="htp-level-cost">Buka <strong>{cfg.unlockCost} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /></strong></span>
-                      <span className="htp-level-reward">+{cfg.keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /> reward</span>
+                      <span className="htp-level-cost">Buka <strong>{user ? `${cfg.unlockCost} ` : 'Gratis '} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /></strong></span>
+                      <span className="htp-level-reward">+{user ? cfg.keyReward : 1} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /> reward</span>
                     </div>
                   ))}
                 </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiRefreshCw, FiEye, FiArrowLeft, FiAward, FiCheckCircle, FiKey, FiAlertCircle, FiCheck } from 'react-icons/fi';
 import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
+import { useAuth } from '../../context/AuthContext';
 import { userApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { getDifficultyInfo } from './MapPage';
@@ -17,6 +18,7 @@ const DEFAULT_PUZZLES = [
 
 export default function PuzzleGame({ onBack, provinceSlug, province }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
   const imgRef = useRef(null);
@@ -260,22 +262,25 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
         markGameCompleted(provinceSlug, 'puzzle');
         if (!hasClaimedReward(provinceSlug)) {
           const { keyReward } = getDifficultyInfo(provinceSlug);
-          const success = claimProvinceReward(provinceSlug, keyReward);
+          const rewardKeys = user ? keyReward : 1;
+          const success = claimProvinceReward(provinceSlug, rewardKeys);
           if (success) {
             const userData = getUserData();
-            setRewardToast({ keys: keyReward, total: userData.keys });
+            setRewardToast({ keys: rewardKeys, total: user ? userData.keys : '∞' });
             setTimeout(() => setRewardToast(null), 4000);
 
-            // Sync claim to backend
-            userApi.claimReward({
-              deviceId: getDeviceId(),
-              provinceSlug,
-              keyReward,
-            }).then((res) => {
-              if (res?.success && res?.data) {
-                syncFromBackend(res.data);
-              }
-            }).catch((err) => console.error('Failed to claim reward on server:', err.message));
+            // Sync claim to backend if authenticated
+            if (user) {
+              userApi.claimReward({
+                deviceId: getDeviceId(),
+                provinceSlug,
+                keyReward: rewardKeys,
+              }).then((res) => {
+                if (res?.success && res?.data) {
+                  syncFromBackend(res.data);
+                }
+              }).catch((err) => console.error('Failed to claim reward on server:', err.message));
+            }
           }
         }
       }
@@ -417,7 +422,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
               <div className="puzzle-side-label">Reward</div>
               {alreadyClaimed
                 ? <div className="puzzle-reward-done"><FiCheckCircle /> Reward diklaim</div>
-                : <p className="puzzle-reward-hint">Selesaikan 3 puzzle untuk dapat +{diffInfo.keyReward} kunci otomatis!</p>
+                : <p className="puzzle-reward-hint">Selesaikan 3 puzzle untuk dapat +{user ? diffInfo.keyReward : 1} kunci otomatis!</p>
               }
             </div>
           )}
@@ -481,7 +486,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
                 {alreadyClaimed ? (
                   <div className="claim-reward-done"><FiCheckCircle /> Reward sudah pernah diklaim</div>
                 ) : (
-                  <div className="claim-reward-done"><FiKey /> +{diffInfo.keyReward} Kunci berhasil ditambahkan!</div>
+                  <div className="claim-reward-done"><FiKey /> +{user ? diffInfo.keyReward : 1} Kunci berhasil ditambahkan!</div>
                 )}
               </div>
             )}

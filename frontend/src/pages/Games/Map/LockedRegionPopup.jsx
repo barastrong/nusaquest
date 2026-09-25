@@ -19,6 +19,7 @@ export default function LockedRegionPopup({
   const isGuestQuotaReached = isGuest && unlockedCount >= GUEST_MAX_PROVINCES;
   const canUnlock = isGuest ? !isGuestQuotaReached : keyValue >= keyRequired;
   const { difficulty, label, color, keyReward } = getDifficultyInfo(regionId);
+  const displayReward = isGuest ? 1 : keyReward;
 
   return (
     <div className="region-popup-overlay" onClick={onClose}>
@@ -64,7 +65,7 @@ export default function LockedRegionPopup({
                   {isGuest ? '∞ (Unlimited)' : keyValue}
                 </strong>
                 {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>
-                  +{keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} />
+                  +{displayReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} />
                 </strong>
               </p>
               {!isGuest && !canUnlock && (

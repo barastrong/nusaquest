@@ -4,7 +4,7 @@ import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
-import { getUserData } from '../../utils/localStorage';
+import { getUserData, hasSeenGuestWarning, setGuestWarningSeen } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/games.css';
@@ -80,7 +80,7 @@ export default function GamesPage() {
   };
 
   const handleLaunchGame = (gameType) => {
-    if (!user) {
+    if (!user && !hasSeenGuestWarning()) {
       setPendingGame(gameType);
       setIsGuestWarningOpen(true);
       return;
@@ -277,10 +277,12 @@ export default function GamesPage() {
       <GuestWarningModal
         isOpen={isGuestWarningOpen}
         onClose={() => {
+          setGuestWarningSeen();
           setIsGuestWarningOpen(false);
           setPendingGame(null);
         }}
         onProceed={() => {
+          setGuestWarningSeen();
           setIsGuestWarningOpen(false);
           if (pendingGame) {
             setActiveGame(pendingGame);
@@ -288,6 +290,7 @@ export default function GamesPage() {
           }
         }}
         onRegister={() => {
+          setGuestWarningSeen();
           setIsGuestWarningOpen(false);
           setPendingGame(null);
           openAuthModal('register');

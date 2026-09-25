@@ -107,22 +107,25 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
           markGameCompleted(provinceSlug, 'quiz');
           if (passed && !hasClaimedReward(provinceSlug)) {
             const { keyReward } = getDifficultyInfo(provinceSlug);
-            const success = claimProvinceReward(provinceSlug, keyReward);
+            const rewardKeys = user ? keyReward : 1;
+            const success = claimProvinceReward(provinceSlug, rewardKeys);
             if (success) {
               const userData = getUserData();
-              setRewardToast({ keys: keyReward, total: userData.keys });
+              setRewardToast({ keys: rewardKeys, total: user ? userData.keys : '∞' });
               setTimeout(() => setRewardToast(null), 4000);
 
               // Sync claim to backend
-              userApi.claimReward({
-                deviceId: getDeviceId(),
-                provinceSlug,
-                keyReward,
-              }).then((res) => {
-                if (res?.success && res?.data) {
-                  syncFromBackend(res.data);
-                }
-              }).catch((err) => console.error('Failed to claim reward on server:', err.message));
+              if (user) {
+                userApi.claimReward({
+                  deviceId: getDeviceId(),
+                  provinceSlug,
+                  keyReward: rewardKeys,
+                }).then((res) => {
+                  if (res?.success && res?.data) {
+                    syncFromBackend(res.data);
+                  }
+                }).catch((err) => console.error('Failed to claim reward on server:', err.message));
+              }
             }
           }
         }

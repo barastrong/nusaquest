@@ -5,7 +5,7 @@ import { provinceApi, userApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
 import { FiKey, FiCheckCircle, FiLock, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
-import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend, getProvinceQuizProgress } from '../../utils/localStorage';
+import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend, getProvinceQuizProgress, hasSeenGuestWarning, setGuestWarningSeen } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../Games/MapPage';
 import GuestWarningModal from '../../components/GuestWarningModal';
@@ -84,7 +84,8 @@ export default function DetailMapPage() {
 
   const handleClaim = async () => {
     const { keyReward } = getDifficultyInfo(name);
-    const success = claimProvinceReward(name, keyReward);
+    const rewardKeys = user ? keyReward : 1;
+    const success = claimProvinceReward(name, rewardKeys);
     if (success) {
       setClaimed(true);
       setCanClaim(false);
@@ -97,7 +98,7 @@ export default function DetailMapPage() {
           const res = await userApi.claimReward({
             deviceId: getDeviceId(),
             provinceSlug: name,
-            keyReward,
+            keyReward: rewardKeys,
           });
           if (res?.success && res?.data) {
             syncFromBackend(res.data);
@@ -110,7 +111,7 @@ export default function DetailMapPage() {
   };
 
   const handleStartGame = () => {
-    if (!user) {
+    if (!user && !hasSeenGuestWarning()) {
       setIsGuestWarningOpen(true);
       return;
     }
@@ -141,7 +142,7 @@ export default function DetailMapPage() {
       {showClaimAnim && (
         <div className="reward-toast">
           <FiCheckCircle className="reward-toast-icon" />
-          <span>+{getDifficultyInfo(name).keyReward} Kunci berhasil diklaim!</span>
+          <span>+{user ? getDifficultyInfo(name).keyReward : 1} Kunci berhasil diklaim!</span>
         </div>
       )}
       {/* Hero Section */}
@@ -354,7 +355,7 @@ export default function DetailMapPage() {
               {canClaim ? (
                 <button className="claim-reward-btn claim-reward-active" onClick={handleClaim}>
                   <FiKey />
-                  <span>Klaim Reward +{getDifficultyInfo(name).keyReward} Kunci</span>
+                  <span>Klaim Reward +{user ? getDifficultyInfo(name).keyReward : 1} Kunci</span>
                 </button>
               ) : !claimed ? (
                 <button className="claim-reward-btn claim-reward-disabled" disabled>
@@ -374,12 +375,17 @@ export default function DetailMapPage() {
       {/* Guest Mode Warning Modal */}
       <GuestWarningModal
         isOpen={isGuestWarningOpen}
-        onClose={() => setIsGuestWarningOpen(false)}
+        onClose={() => {
+          setGuestWarningSeen();
+          setIsGuestWarningOpen(false);
+        }}
         onProceed={() => {
+          setGuestWarningSeen();
           setIsGuestWarningOpen(false);
           navigate(`/games/${name}`);
         }}
         onRegister={() => {
+          setGuestWarningSeen();
           setIsGuestWarningOpen(false);
           openAuthModal('register');
         }}

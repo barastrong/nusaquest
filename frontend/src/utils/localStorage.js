@@ -311,7 +311,30 @@ export const getDeviceId = () => {
 };
 
 
+// Get or check if guest warning modal has been seen once
+export const hasSeenGuestWarning = () => {
+  try {
+    return localStorage.getItem('nusaquest_guest_warning_seen') === 'true';
+  } catch {
+    return false;
+  }
+};
+
+// Set guest warning modal as seen so it only triggers once
+export const setGuestWarningSeen = () => {
+  try {
+    localStorage.setItem('nusaquest_guest_warning_seen', 'true');
+  } catch {
+    // ignore
+  }
+};
+
 // Reset user data
 export const resetUserData = () => {
+  try {
+    localStorage.removeItem('nusaquest_guest_warning_seen');
+  } catch {
+    // ignore
+  }
   return saveUserData(DEFAULT_USER_DATA);
 };
