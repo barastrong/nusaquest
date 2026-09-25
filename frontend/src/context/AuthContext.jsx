@@ -17,6 +17,11 @@ const AuthContext = createContext(null);
 
 const TOKEN_KEY = 'nusaquest_token';
 
+/** Error 401/403 = sesi memang ditolak server (bukan gangguan jaringan) */
+const isAuthError = (err) => err?.status === 401 || err?.status === 403;
+
+const hasToken = () => Boolean(localStorage.getItem(TOKEN_KEY));
+
 // Key localStorage lama yang sudah tidak dipakai lagi. Dibaca sekali lalu dihapus
 // supaya data tamu yang tersangkut di browser ikut dipindahkan ke database.
 const LEGACY_PROGRESS_KEY = 'nusaquest_user_data';
@@ -63,20 +68,6 @@ export function AuthProvider({ children }) {
   // ---------------------------------------------------------------------------
 
   /** Ambil progres milik akun yang sedang login */
-  const fetchUserProgress = useCallback(async () => {
-    try {
-      const res = await userApi.syncProgress({});
-      if (res?.success && res.data) {
-        const mapped = mapProgressFromApi(res.data);
-        setUserProgress(mapped);
-        return mapped;
-      }
-    } catch (err) {
-      console.error('Failed to load user progress:', err.message);
-    }
-    return null;
-  }, []);
-
   /**
    * Ambil progres Mode Tamu dari database untuk perangkat ini.
    * `localData` (opsional) adalah sisa data localStorage lama: dikirim satu kali
@@ -109,11 +100,56 @@ export function AuthProvider({ children }) {
     return null;
   }, []);
 
+  /** Tutup sesi login di sisi client (token + state) tanpa menyentuh progres tamu */
+  const endSession = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setUser(null);
+    setGameHistory([]);
+  }, []);
+
+  /**
+   * Ambil progres milik akun yang sedang login.
+   *
+   * - Tidak memanggil API kalau tokennya memang tidak ada (dulu ini memicu 401
+   *   "Token tidak ditemukan" berulang di console).
+   * - Kalau server MENOLAK sesi (401/403), sesi diakhiri dengan rapi lalu progres
+   *   beralih ke Mode Tamu — bukan dianggap error tak terduga.
+   */
+  const fetchUserProgress = useCallback(async () => {
+    if (!hasToken()) return null;
+
+    try {
+      const res = await userApi.syncProgress({});
+      if (res?.success && res.data) {
+        const mapped = mapProgressFromApi(res.data);
+        setUserProgress(mapped);
+        return mapped;
+      }
+      return null;
+    } catch (err) {
+      if (isAuthError(err)) {
+        // Sesi benar-benar habis (token kedaluwarsa / dihapus di tab lain).
+        // Ini kondisi normal, cukup beri catatan — bukan console.error.
+        console.warn('Sesi login berakhir — beralih ke Mode Tamu perangkat ini.');
+        endSession();
+        await fetchGuestProgress();
+        return null;
+      }
+
+      console.error('Failed to load user progress:', err.message);
+      return null;
+    }
+  }, [endSession, fetchGuestProgress]);
+
   /** Sinkronkan progres (otomatis memilih jalur tamu atau akun) */
   const syncProgressWithBackend = useCallback(async () => {
     setProgressLoading(true);
     try {
-      return user ? await fetchUserProgress() : await fetchGuestProgress();
+      // Patokan = ada/tidaknya token, bukan state `user` yang bisa tertinggal
+      // (mis. tepat setelah logout, atau saat sesi sudah diakhiri).
+      if (hasToken() && user) return await fetchUserProgress();
+      return await fetchGuestProgress();
     } finally {
       setProgressLoading(false);
     }
@@ -140,10 +176,8 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     async function initAuth() {
-      const savedToken = localStorage.getItem(TOKEN_KEY);
-
-      if (!savedToken) {
-        // Mode Tamu: progres diambil dari database berdasarkan device id
+      // Tanpa token -> langsung Mode Tamu (progres dibaca dari database per device id)
+      if (!hasToken()) {
         await fetchGuestProgress();
         if (mounted) {
           setProgressLoading(false);
@@ -152,33 +186,47 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      // Ada token -> verifikasi ke server.
+      // PENTING: token HANYA dihapus kalau server benar-benar menolak sesi
+      // (401/403). Gangguan jaringan atau backend 5xx tidak boleh membuat user
+      // ter-logout otomatis — token dipertahankan supaya sesi bisa pulih.
+      let sessionValid = false;
+      let networkFailed = false;
+
       try {
         const res = await authApi.getMe();
-        if (mounted && res.success && res.user) {
-          setUser(res.user);
-          // Data localStorage lama tidak boleh bocor ke akun: hapus saja.
-          // Progres akun selalu dibaca dari database.
-          clearLegacyLocalData();
-          await fetchUserProgress();
-          if (mounted) fetchHistory();
-        } else {
-          localStorage.removeItem(TOKEN_KEY);
+        if (res.success && res.user) {
+          sessionValid = true;
           if (mounted) {
-            setToken(null);
-            setUser(null);
+            setUser(res.user);
+            // Data localStorage lama tidak boleh bocor ke akun: hapus saja.
+            // Progres akun selalu dibaca dari database.
+            clearLegacyLocalData();
           }
         }
-      } catch {
-        localStorage.removeItem(TOKEN_KEY);
-        if (mounted) {
-          setToken(null);
-          setUser(null);
+      } catch (err) {
+        if (isAuthError(err)) {
+          console.warn('Sesi login tidak berlaku lagi — beralih ke Mode Tamu.');
+        } else {
+          networkFailed = true;
+          console.error('Gagal verifikasi sesi (backend tidak merespons):', err.message);
         }
-      } finally {
-        if (mounted) {
-          setProgressLoading(false);
-          setLoading(false);
-        }
+      }
+
+      if (sessionValid) {
+        // fetchUserProgress menangani sendiri kasus 401 (mengakhiri sesi +
+        // memuat progres Mode Tamu), jadi tidak ada 401 yang nyangkut.
+        const synced = await fetchUserProgress();
+        if (mounted && synced) fetchHistory();
+      } else {
+        if (!networkFailed && mounted) endSession();
+        // Tetap tampilkan progres Mode Tamu milik perangkat ini
+        await fetchGuestProgress();
+      }
+
+      if (mounted) {
+        setProgressLoading(false);
+        setLoading(false);
       }
     }
 
@@ -186,7 +234,7 @@ export function AuthProvider({ children }) {
     return () => {
       mounted = false;
     };
-  }, [fetchHistory, fetchGuestProgress, fetchUserProgress]);
+  }, [endSession, fetchHistory, fetchGuestProgress, fetchUserProgress]);
 
   const login = async (identifier, password) => {
     const res = await authApi.login({ identifier, password });
@@ -295,16 +343,11 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
-    setUser(null);
-    setGameHistory([]);
     setIsHistoryModalOpen(false);
+    endSession();
 
     // Progres Mode Tamu tetap milik perangkat ini (per-device), jadi cukup
     // dimuat ulang dari database — bukan direset dari sisi client.
-    // Catatan: sengaja memanggil fetchGuestProgress, BUKAN syncProgressWithBackend,
-    // karena state `user` di closure ini masih bernilai user yang baru logout.
     setProgressLoading(true);
     try {
       await fetchGuestProgress();
