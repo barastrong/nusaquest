@@ -1,5 +1,9 @@
+import { supabase } from '../config/supabase.js';
+
 /**
- * In-memory store untuk pendaftaran yang menunggu verifikasi kode OTP
+ * Store data pendaftaran yang menunggu verifikasi kode OTP.
+ * Menyimpan secara persisten ke tabel Supabase `email_verifications`,
+ * dengan in-memory cache sebagai fallback otomatis jika tabel belum dibuat.
  */
 
 const pendingRegistrations = new Map();
@@ -8,15 +12,24 @@ const OTP_TTL_MS = 10 * 60 * 1000; // 10 menit
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 detik
 const MAX_ATTEMPTS = 5;
 
-// Bersihkan data kedaluwarsa secara berkala setiap 2 menit
-const cleanupTimer = setInterval(() => {
+// Pembersihan data kedaluwarsa secara berkala (memory + Supabase)
+const cleanupTimer = setInterval(async () => {
   const now = Date.now();
   for (const [key, value] of pendingRegistrations.entries()) {
     if (value.expiresAt < now) {
       pendingRegistrations.delete(key);
     }
   }
-}, 2 * 60 * 1000);
+
+  try {
+    await supabase
+      .from('email_verifications')
+      .delete()
+      .lt('expires_at', new Date(now).toISOString());
+  } catch (_) {
+    // Ignored jika tabel belum ada
+  }
+}, 5 * 60 * 1000);
 
 if (cleanupTimer.unref) {
   cleanupTimer.unref();
@@ -27,15 +40,19 @@ function normalizeEmail(email) {
 }
 
 /**
- * Simpan data pendaftaran sementara beserta OTP
+ * Simpan data pendaftaran sementara beserta OTP ke Supabase dan memory cache
  */
-export function setPendingRegistration(email, data) {
+export async function setPendingRegistration(email, data) {
   const cleanEmail = normalizeEmail(email);
   const now = Date.now();
+  const expiresAtMs = now + OTP_TTL_MS;
+  const expiresAtIso = new Date(expiresAtMs).toISOString();
+  const lastSentAtIso = new Date(now).toISOString();
 
+  // 1. Simpan di local memory cache
   pendingRegistrations.set(cleanEmail, {
     otp: String(data.otp).trim(),
-    expiresAt: now + OTP_TTL_MS,
+    expiresAt: expiresAtMs,
     lastSentAt: now,
     attempts: 0,
     data: {
@@ -46,13 +63,74 @@ export function setPendingRegistration(email, data) {
       deviceId: data.deviceId,
     },
   });
+
+  // 2. Simpan persisten ke Supabase
+  try {
+    const { error } = await supabase
+      .from('email_verifications')
+      .upsert(
+        {
+          email: cleanEmail,
+          username: data.username,
+          display_name: data.displayName || data.username,
+          password_hash: data.passwordHash,
+          device_id: data.deviceId || null,
+          otp: String(data.otp).trim(),
+          attempts: 0,
+          last_sent_at: lastSentAtIso,
+          expires_at: expiresAtIso,
+        },
+        { onConflict: 'email' }
+      );
+
+    if (error) {
+      console.warn('[OTP Store] Supabase upsert notice:', error.message);
+    }
+  } catch (err) {
+    console.warn('[OTP Store] Supabase error, using memory fallback:', err.message);
+  }
 }
 
 /**
- * Cek apakah user sedang dalam status pending registration
+ * Ambil data pending registration dari Supabase atau memory
  */
-export function getPendingRegistration(email) {
+export async function getPendingRegistration(email) {
   const cleanEmail = normalizeEmail(email);
+
+  // Coba ambil dari Supabase
+  try {
+    const { data, error } = await supabase
+      .from('email_verifications')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (!error && data) {
+      const expiresAtMs = new Date(data.expires_at).getTime();
+      if (Date.now() > expiresAtMs) {
+        await deletePendingRegistration(cleanEmail);
+        return null;
+      }
+
+      return {
+        otp: data.otp,
+        expiresAt: expiresAtMs,
+        lastSentAt: new Date(data.last_sent_at).getTime(),
+        attempts: data.attempts || 0,
+        data: {
+          username: data.username,
+          email: cleanEmail,
+          passwordHash: data.password_hash,
+          displayName: data.display_name,
+          deviceId: data.device_id,
+        },
+      };
+    }
+  } catch (_) {
+    // Fallback ke memory
+  }
+
+  // Memory fallback
   const item = pendingRegistrations.get(cleanEmail);
   if (!item) return null;
   if (Date.now() > item.expiresAt) {
@@ -63,13 +141,14 @@ export function getPendingRegistration(email) {
 }
 
 /**
- * Cek apakah pengiriman ulang OTP diperbolehkan (cooldown 60s)
+ * Cek apakah pengiriman ulang OTP diperbolehkan (cooldown 60 detik)
  */
-export function canResendOtp(email) {
+export async function canResendOtp(email) {
   const cleanEmail = normalizeEmail(email);
-  const item = pendingRegistrations.get(cleanEmail);
+  const item = await getPendingRegistration(cleanEmail);
+
   if (!item) {
-    return { allowed: false, message: 'Tidak ada sesi pendaftaran aktif untuk email ini.' };
+    return { allowed: true };
   }
 
   const elapsed = Date.now() - item.lastSentAt;
@@ -86,29 +165,52 @@ export function canResendOtp(email) {
 }
 
 /**
- * Perbarui kode OTP dan refresh masa berlaku
+ * Perbarui kode OTP dan reset timer kedaluwarsa
  */
-export function updatePendingOtp(email, newOtp) {
+export async function updatePendingOtp(email, newOtp) {
   const cleanEmail = normalizeEmail(email);
-  const item = pendingRegistrations.get(cleanEmail);
-  if (!item) return false;
-
   const now = Date.now();
-  item.otp = String(newOtp).trim();
-  item.expiresAt = now + OTP_TTL_MS;
-  item.lastSentAt = now;
-  item.attempts = 0; // reset attempts for new OTP
+  const cleanNewOtp = String(newOtp).trim();
+  const expiresAtMs = now + OTP_TTL_MS;
+  const expiresAtIso = new Date(expiresAtMs).toISOString();
+  const lastSentAtIso = new Date(now).toISOString();
 
-  pendingRegistrations.set(cleanEmail, item);
-  return true;
+  // Update memory
+  const memItem = pendingRegistrations.get(cleanEmail);
+  if (memItem) {
+    memItem.otp = cleanNewOtp;
+    memItem.expiresAt = expiresAtMs;
+    memItem.lastSentAt = now;
+    memItem.attempts = 0;
+    pendingRegistrations.set(cleanEmail, memItem);
+  }
+
+  // Update Supabase
+  try {
+    const { error } = await supabase
+      .from('email_verifications')
+      .update({
+        otp: cleanNewOtp,
+        expires_at: expiresAtIso,
+        last_sent_at: lastSentAtIso,
+        attempts: 0,
+      })
+      .eq('email', cleanEmail);
+
+    if (!error) return true;
+  } catch (err) {
+    console.warn('[OTP Store] Failed to update OTP in Supabase:', err.message);
+  }
+
+  return Boolean(memItem);
 }
 
 /**
- * Verifikasi kode OTP
+ * Verifikasi kode OTP dengan pembatasan percobaan maks 5 kali
  */
-export function verifyRegistrationOtp(email, inputOtp) {
+export async function verifyRegistrationOtp(email, inputOtp) {
   const cleanEmail = normalizeEmail(email);
-  const item = pendingRegistrations.get(cleanEmail);
+  const item = await getPendingRegistration(cleanEmail);
 
   if (!item) {
     return {
@@ -118,7 +220,7 @@ export function verifyRegistrationOtp(email, inputOtp) {
   }
 
   if (Date.now() > item.expiresAt) {
-    pendingRegistrations.delete(cleanEmail);
+    await deletePendingRegistration(cleanEmail);
     return {
       success: false,
       message: 'Kode OTP telah kedaluwarsa (lebih dari 10 menit). Silakan minta kode baru.',
@@ -126,7 +228,7 @@ export function verifyRegistrationOtp(email, inputOtp) {
   }
 
   if (item.attempts >= MAX_ATTEMPTS) {
-    pendingRegistrations.delete(cleanEmail);
+    await deletePendingRegistration(cleanEmail);
     return {
       success: false,
       message: 'Batas percobaan verifikasi telah terlampaui. Silakan daftar kembali.',
@@ -135,19 +237,34 @@ export function verifyRegistrationOtp(email, inputOtp) {
 
   const cleanInput = String(inputOtp || '').trim();
   if (cleanInput !== item.otp) {
-    item.attempts += 1;
-    const remaining = MAX_ATTEMPTS - item.attempts;
+    const newAttempts = item.attempts + 1;
+
+    try {
+      await supabase
+        .from('email_verifications')
+        .update({ attempts: newAttempts })
+        .eq('email', cleanEmail);
+    } catch (_) {}
+
+    const memItem = pendingRegistrations.get(cleanEmail);
+    if (memItem) {
+      memItem.attempts = newAttempts;
+    }
+
+    const remaining = MAX_ATTEMPTS - newAttempts;
     return {
       success: false,
-      message: remaining > 0
-        ? `Kode OTP salah. Sisa kesempatan: ${remaining} kali.`
-        : 'Kode OTP salah. Batas kesempatan habis. Silakan daftar kembali.',
+      message:
+        remaining > 0
+          ? `Kode OTP salah. Sisa kesempatan: ${remaining} kali.`
+          : 'Kode OTP salah. Batas kesempatan habis. Silakan daftar kembali.',
     };
   }
 
-  // Jika benar, ambil data dan hapus dari pending
+  // Jika benar, ambil data registrasi dan bersihkan record sesi
   const userData = { ...item.data };
-  pendingRegistrations.delete(cleanEmail);
+  await deletePendingRegistration(cleanEmail);
+
   return {
     success: true,
     data: userData,
@@ -155,9 +272,16 @@ export function verifyRegistrationOtp(email, inputOtp) {
 }
 
 /**
- * Hapus pending registration secara manual (misal user ganti email)
+ * Hapus pending registration dari Supabase dan memory
  */
-export function deletePendingRegistration(email) {
+export async function deletePendingRegistration(email) {
   const cleanEmail = normalizeEmail(email);
-  return pendingRegistrations.delete(cleanEmail);
+  pendingRegistrations.delete(cleanEmail);
+
+  try {
+    await supabase.from('email_verifications').delete().eq('email', cleanEmail);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }

@@ -67,7 +67,7 @@ export const requestRegister = async (req, res) => {
     }
 
     // Cek apakah email sedang dalam cooldown resend
-    const resendCheck = canResendOtp(cleanEmail);
+    const resendCheck = await canResendOtp(cleanEmail);
     if (!resendCheck.allowed && resendCheck.remainingSeconds) {
       return res.status(429).json({
         success: false,
@@ -81,8 +81,8 @@ export const requestRegister = async (req, res) => {
     const passwordHash = hashPassword(password);
     const finalDisplayName = displayName ? String(displayName).trim() : cleanUsername;
 
-    // Simpan ke in-memory pending registrations
-    setPendingRegistration(cleanEmail, {
+    // Simpan ke pending store (Supabase dengan fallback memory)
+    await setPendingRegistration(cleanEmail, {
       username: cleanUsername,
       email: cleanEmail,
       passwordHash,
@@ -122,8 +122,8 @@ export const verifyOtp = async (req, res) => {
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanOtp = String(otp).trim();
 
-    // Verifikasi dari in-memory pending store
-    const verifyResult = verifyRegistrationOtp(cleanEmail, cleanOtp);
+    // Verifikasi dari pending store (Supabase dengan fallback memory)
+    const verifyResult = await verifyRegistrationOtp(cleanEmail, cleanOtp);
     if (!verifyResult.success) {
       return res.status(400).json({
         success: false,
@@ -236,7 +236,7 @@ export const resendOtp = async (req, res) => {
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const pending = getPendingRegistration(cleanEmail);
+    const pending = await getPendingRegistration(cleanEmail);
 
     if (!pending) {
       return res.status(400).json({
@@ -245,7 +245,7 @@ export const resendOtp = async (req, res) => {
       });
     }
 
-    const resendCheck = canResendOtp(cleanEmail);
+    const resendCheck = await canResendOtp(cleanEmail);
     if (!resendCheck.allowed) {
       return res.status(429).json({
         success: false,
@@ -255,7 +255,7 @@ export const resendOtp = async (req, res) => {
     }
 
     const newOtp = crypto.randomInt(100000, 1000000).toString();
-    updatePendingOtp(cleanEmail, newOtp);
+    await updatePendingOtp(cleanEmail, newOtp);
 
     await sendOtpEmail(cleanEmail, newOtp, pending.data.displayName);
 
