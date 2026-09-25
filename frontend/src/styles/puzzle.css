@@ -686,6 +686,7 @@
   color: #6fcf97;
   font-weight: 600;
 }
+[data-theme="light"] .claim-reward-done { color: #166534; }
 
 /* ── Reward Toast Popup (kanan atas) ── */
 .reward-toast-popup {

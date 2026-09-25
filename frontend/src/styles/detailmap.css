@@ -648,12 +648,6 @@
 [data-theme="light"] .status-in-progress { background: rgba(201,168,76,0.14) !important; color: #8a6d20 !important; border-color: rgba(201,168,76,0.38) !important; }
 [data-theme="light"] .status-not-started { background: rgba(120,120,120,0.08) !important; color: #6b7280 !important; border-color: rgba(120,120,120,0.25) !important; }
 
-[data-theme="light"] .claim-reward-done {
-  background: rgba(45,155,94,0.1);
-  border-color: rgba(45,155,94,0.3);
-  color: #166534;
-}
-
 [data-theme="light"] .highlight-gold { color: #8a6d20 !important; }
 [data-theme="light"] .stat-award-icon { color: #8a6d20; }
 
@@ -902,6 +896,11 @@
   font-size: 14px;
   font-weight: 600;
   font-family: 'Plus Jakarta Sans', sans-serif;
+}
+[data-theme="light"] .claim-reward-done {
+  background: rgba(45,155,94,0.1);
+  border-color: rgba(45,155,94,0.3);
+  color: #166534;
 }
 
 /* ── Reward Toast (top-right popup) ── */
