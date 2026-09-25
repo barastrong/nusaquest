@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
@@ -10,9 +11,12 @@ import '../../styles/games.css';
 export default function GamesPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user, loading: authLoading, openAuthModal } = useAuth();
+  const { user, loading: authLoading, openAuthModal, getProvinceProgress, userProgress } = useAuth();
   const [activeGame, setActiveGame] = useState(null);
   const [province, setProvince] = useState(null);
+
+  const quizProgress = getProvinceProgress ? getProvinceProgress(slug, 'quiz') : { isCompleted: false, attempts: 0, highScore: 0, hasAttempted: false };
+  const puzzleProgress = getProvinceProgress ? getProvinceProgress(slug, 'puzzle') : { isCompleted: false, attempts: 0, highScore: 0, hasAttempted: false };
 
   // Scroll to top on mount
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
@@ -108,7 +112,18 @@ export default function GamesPage() {
         <div className="games-select">
           <div className="game-select-card reveal">
             <div className="gsc-top" style={{background:'linear-gradient(135deg,#0A1A14,#1A4A30)'}}>
-              <div className="gsc-badge b-quiz">Quiz Budaya</div>
+              <div className="gsc-badge-group">
+                <div className="gsc-badge b-quiz">Quiz Budaya</div>
+                <div className={`gsc-status-indicator ${quizProgress.isCompleted ? 'status-completed' : quizProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                  {quizProgress.isCompleted ? (
+                    <><FiCheckCircle /> Selesai</>
+                  ) : quizProgress.hasAttempted ? (
+                    <><FiRotateCw /> Sedang Belajar</>
+                  ) : (
+                    <><FiClock /> Belum Dikerjakan</>
+                  )}
+                </div>
+              </div>
               <div className="gsc-icon" style={{background:'rgba(45,155,94,0.2)'}}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#40916C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -124,6 +139,35 @@ export default function GamesPage() {
                   ? `Jawab 5 pertanyaan tentang ${province.name}. Jawab semua dengan benar untuk klaim reward!`
                   : 'Jawab 10 pertanyaan tentang budaya, sejarah, dan tradisi Indonesia.'}
               </div>
+
+              {/* Progress Tracker Card */}
+              <div className="gsc-progress-box">
+                <div className="gsc-progress-row">
+                  <span className="gsc-progress-label">Status Pengerjaan:</span>
+                  <span className={`gsc-progress-tag ${quizProgress.isCompleted ? 'status-completed' : quizProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                    {quizProgress.isCompleted ? (
+                      <><FiCheckCircle /> Sudah Selesai</>
+                    ) : quizProgress.hasAttempted ? (
+                      <><FiRotateCw /> Belum Lulus</>
+                    ) : (
+                      <><FiClock /> Belum Dikerjakan</>
+                    )}
+                  </span>
+                </div>
+                <div className="gsc-progress-stats">
+                  <div className="gsc-stat-col">
+                    <span className="gsc-stat-title">Jumlah Percobaan</span>
+                    <span className="gsc-stat-number">{quizProgress.attempts > 0 ? `${quizProgress.attempts} kali` : '0 kali'}</span>
+                  </div>
+                  <div className="gsc-stat-col">
+                    <span className="gsc-stat-title">Skor Tertinggi</span>
+                    <span className="gsc-stat-number highlight-gold">
+                      <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/5` : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="gsc-pills">
                 <span className="gsc-pill">{province ? '5 Soal' : '10 Soal'}</span>
                 <span className="gsc-pill">Pilihan Ganda</span>
@@ -136,13 +180,26 @@ export default function GamesPage() {
                   return;
                 }
                 setActiveGame('quiz');
-              }}>Mulai Quiz</button>
+              }}>
+                {quizProgress.isCompleted ? 'Mainkan Lagi' : quizProgress.hasAttempted ? 'Lanjutkan Percobaan' : 'Mulai Quiz'}
+              </button>
             </div>
           </div>
 
           <div className="game-select-card reveal">
             <div className="gsc-top" style={{background:'linear-gradient(135deg,#1A1508,#3D2E08)'}}>
-              <div className="gsc-badge b-puzzle">Puzzle</div>
+              <div className="gsc-badge-group">
+                <div className="gsc-badge b-puzzle">Puzzle</div>
+                <div className={`gsc-status-indicator ${puzzleProgress.isCompleted ? 'status-completed' : puzzleProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                  {puzzleProgress.isCompleted ? (
+                    <><FiCheckCircle /> Selesai</>
+                  ) : puzzleProgress.hasAttempted ? (
+                    <><FiRotateCw /> Sedang Belajar</>
+                  ) : (
+                    <><FiClock /> Belum Dikerjakan</>
+                  )}
+                </div>
+              </div>
               <div className="gsc-icon" style={{background:'rgba(201,168,76,0.15)'}}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
@@ -157,6 +214,35 @@ export default function GamesPage() {
                   ? `Susun gambar budaya ${province.name} menjadi sempurna untuk klaim reward!`
                   : 'Susun kepingan gambar budaya Indonesia menjadi gambar yang sempurna.'}
               </div>
+
+              {/* Progress Tracker Card */}
+              <div className="gsc-progress-box">
+                <div className="gsc-progress-row">
+                  <span className="gsc-progress-label">Status Pengerjaan:</span>
+                  <span className={`gsc-progress-tag ${puzzleProgress.isCompleted ? 'status-completed' : puzzleProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                    {puzzleProgress.isCompleted ? (
+                      <><FiCheckCircle /> Sudah Selesai</>
+                    ) : puzzleProgress.hasAttempted ? (
+                      <><FiRotateCw /> Belum Selesai</>
+                    ) : (
+                      <><FiClock /> Belum Dikerjakan</>
+                    )}
+                  </span>
+                </div>
+                <div className="gsc-progress-stats">
+                  <div className="gsc-stat-col">
+                    <span className="gsc-stat-title">Jumlah Percobaan</span>
+                    <span className="gsc-stat-number">{puzzleProgress.attempts > 0 ? `${puzzleProgress.attempts} kali` : '0 kali'}</span>
+                  </div>
+                  <div className="gsc-stat-col">
+                    <span className="gsc-stat-title">Skor Tertinggi</span>
+                    <span className="gsc-stat-number highlight-gold">
+                      <FiAward className="stat-award-icon" /> {puzzleProgress.attempts > 0 ? `${puzzleProgress.highScore}` : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="gsc-pills">
                 <span className="gsc-pill">Drag & Drop</span>
                 <span className="gsc-pill">4x4 Grid</span>
@@ -169,7 +255,9 @@ export default function GamesPage() {
                   return;
                 }
                 setActiveGame('puzzle');
-              }}>Mulai Puzzle</button>
+              }}>
+                {puzzleProgress.isCompleted ? 'Mainkan Lagi' : puzzleProgress.hasAttempted ? 'Lanjutkan Percobaan' : 'Mulai Puzzle'}
+              </button>
             </div>
           </div>
         </div>

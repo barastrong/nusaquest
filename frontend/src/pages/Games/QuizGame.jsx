@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
-import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw, FiAward, FiClock, FiRotateCw } from 'react-icons/fi';
 import { ClipLoader } from 'react-spinners';
 import { gameApi, userApi } from '../../services/api';
-import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
+import {
+  markGameCompleted,
+  claimProvinceReward,
+  hasClaimedReward,
+  getUserData,
+  getDeviceId,
+  syncFromBackend,
+  recordQuizAttempt,
+  getProvinceQuizProgress,
+} from '../../utils/localStorage';
+import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from './MapPage';
 import successSfx from '../../sounds/success.mp3';
 import failedSfx from '../../sounds/failed.mp3';
@@ -15,6 +25,7 @@ const playSfx = (ok) => {
 };
 
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
+  const { user, getProvinceProgress, syncProgressWithBackend, fetchHistory } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [qIdx, setQIdx] = useState(0);
@@ -26,6 +37,11 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   const [confetti, setConfetti] = useState([]);
   const [rewardToast, setRewardToast] = useState(null);
   const [alreadyClaimed] = useState(() => provinceSlug ? hasClaimedReward(provinceSlug) : false);
+  const [postQuizStats, setPostQuizStats] = useState(null);
+
+  const prevProgress = getProvinceProgress
+    ? getProvinceProgress(provinceSlug, 'quiz')
+    : getProvinceQuizProgress(provinceSlug);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -85,7 +101,9 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
         const finalScore = newScore;
         const passed = finalScore >= PASS_THRESHOLD;
 
+        let recordedStat = null;
         if (provinceSlug) {
+          recordedStat = recordQuizAttempt(provinceSlug, finalScore, passed);
           markGameCompleted(provinceSlug, 'quiz');
           if (passed && !hasClaimedReward(provinceSlug)) {
             const { keyReward } = getDifficultyInfo(provinceSlug);
@@ -116,7 +134,17 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
           gameType: 'quiz',
           score: finalScore,
           passed,
+        }).then(() => {
+          if (syncProgressWithBackend) syncProgressWithBackend();
+          if (fetchHistory) fetchHistory();
         }).catch((err) => console.error('Failed to record quiz score:', err.message));
+
+        setPostQuizStats({
+          attempts: recordedStat?.attempts || (prevProgress.attempts || 0) + 1,
+          highScore: recordedStat?.highScore || Math.max(prevProgress.highScore || 0, finalScore),
+          isCompleted: Boolean(recordedStat?.passed || prevProgress.isCompleted || passed),
+          isNewRecord: prevProgress.attempts > 0 && finalScore > (prevProgress.highScore || 0),
+        });
 
         setFinished(true);
       } else {
@@ -133,6 +161,7 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     setAnswered(false);
     setFinished(false);
     setSelectedAnswer(null);
+    setPostQuizStats(null);
     setFeedback(null);
     setConfetti([]);
   };
@@ -161,12 +190,44 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
           <div className={`result-verdict ${passed ? 'verdict-pass' : 'verdict-fail'}`}>
             {passed ? 'Lulus!' : 'Belum Lulus'}
           </div>
+
+          {/* Child-friendly Progress Tracker Recap */}
+          {provinceSlug && (
+            <div className="result-progress-card">
+              <div className="rpc-header">
+                <span className="rpc-title">Perkembangan Belajar Kamu</span>
+                <span className={`rpc-status-tag ${(postQuizStats?.isCompleted || passed || prevProgress.isCompleted) ? 'status-completed' : 'status-in-progress'}`}>
+                  {(postQuizStats?.isCompleted || passed || prevProgress.isCompleted) ? (
+                    <><FiCheckCircle /> Sudah Selesai</>
+                  ) : (
+                    <><FiRotateCw /> Sedang Belajar</>
+                  )}
+                </span>
+              </div>
+              <div className="rpc-stats-grid">
+                <div className="rpc-stat-box">
+                  <span className="rpc-stat-label">Jumlah Percobaan</span>
+                  <span className="rpc-stat-value">{postQuizStats?.attempts ?? ((prevProgress.attempts || 0) + 1)} kali</span>
+                </div>
+                <div className="rpc-stat-box">
+                  <span className="rpc-stat-label">Skor Tertinggi</span>
+                  <span className="rpc-stat-value highlight-gold">
+                    <FiAward className="stat-award-icon" /> {postQuizStats?.highScore ?? Math.max(prevProgress.highScore || 0, score)}/{questions.length}
+                  </span>
+                  {postQuizStats?.isNewRecord && (
+                    <span className="rpc-badge-new">Rekor Baru!</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="result-msg">
             {passed
               ? alreadyClaimed
-                ? `Hebat! Kamu menjawab ${score}/${questions.length} soal benar. Reward sudah pernah diklaim sebelumnya.`
-                : `Hebat! Kamu menjawab ${score}/${questions.length} soal benar. Kunci reward sudah ditambahkan!`
-              : `Kamu perlu menjawab minimal ${PASS_THRESHOLD} soal dengan benar. Coba lagi!`}
+                ? `Hebat! Kamu berhasil menjawab ${score}/${questions.length} soal dengan benar. Terus pertahankan prestasimu!`
+                : `Hebat! Kamu berhasil menjawab ${score}/${questions.length} soal dengan benar. Kunci reward sudah ditambahkan!`
+              : `Bagus sekali sudah mencoba! Kamu menjawab ${score} dari ${questions.length} soal. Butuh minimal ${PASS_THRESHOLD} benar untuk lulus. Ayo coba lagi, kamu pasti bisa!`}
           </div>
 
           {passed && !alreadyClaimed && rewardToast === null && (
@@ -210,8 +271,28 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     <div className="quiz-game show">
       <div className="quiz-header">
         <button className="quiz-back" onClick={onBack}>← Kembali</button>
-        <div className="quiz-title">
-          {provinceName ? `Quiz — ${provinceName}` : 'Quiz Budaya Indonesia'}
+        <div className="quiz-title-wrap">
+          <div className="quiz-title">
+            {provinceName ? `Quiz — ${provinceName}` : 'Quiz Budaya Indonesia'}
+          </div>
+          {provinceSlug && (
+            <div className="quiz-header-progress">
+              <span className={`quiz-status-chip ${prevProgress.isCompleted ? 'status-completed' : prevProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                {prevProgress.isCompleted ? (
+                  <><FiCheckCircle /> Sudah Pernah Lulus</>
+                ) : prevProgress.hasAttempted ? (
+                  <><FiRotateCw /> Percobaan ke-{(prevProgress.attempts || 0) + 1}</>
+                ) : (
+                  <><FiClock /> Belum Dikerjakan</>
+                )}
+              </span>
+              {prevProgress.attempts > 0 && (
+                <span className="quiz-highscore-chip">
+                  <FiAward /> Rekor Terbaik: {prevProgress.highScore}/{questions.length}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

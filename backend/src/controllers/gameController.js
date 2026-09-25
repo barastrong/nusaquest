@@ -1,4 +1,91 @@
+import http from 'node:http';
+import https from 'node:https';
+import { URL } from 'node:url';
 import { supabase } from '../config/supabase.js';
+
+/**
+ * HTTP CONNECT proxy tunnel tanpa dependency eksternal (kompatibel penuh dengan Node 18, 20, 22+)
+ */
+const requestHttpsViaProxy = (targetUrl, options, proxyUrl) => {
+  return new Promise((resolve, reject) => {
+    const target = new URL(targetUrl);
+    const proxy = new URL(proxyUrl);
+
+    const connectReq = http.request({
+      host: proxy.hostname,
+      port: proxy.port,
+      method: 'CONNECT',
+      path: `${target.hostname}:${target.port || 443}`,
+      headers: {
+        'Host': `${target.hostname}:${target.port || 443}`,
+        'Proxy-Authorization': 'Basic ' + Buffer.from(`${proxy.username}:${proxy.password}`).toString('base64'),
+      },
+    });
+
+    connectReq.setTimeout(12000, () => {
+      connectReq.destroy(new Error('Proxy CONNECT timeout'));
+    });
+
+    connectReq.on('connect', (res, socket) => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`Proxy CONNECT error: ${res.statusCode} ${res.statusMessage}`));
+      }
+
+      const agent = new https.Agent({ socket });
+      const req = https.request({
+        host: target.hostname,
+        port: target.port || 443,
+        method: options.method || 'GET',
+        path: target.pathname + target.search,
+        headers: {
+          ...options.headers,
+          'Host': target.hostname,
+        },
+        agent,
+      }, (response) => {
+        let body = '';
+        response.on('data', chunk => body += chunk);
+        response.on('end', () => {
+          resolve({
+            ok: response.statusCode >= 200 && response.statusCode < 300,
+            status: response.statusCode,
+            text: async () => body,
+            json: async () => JSON.parse(body),
+          });
+        });
+      });
+
+      req.on('error', reject);
+      if (options.body) req.write(options.body);
+      req.end();
+    });
+
+    connectReq.on('error', reject);
+    connectReq.end();
+  });
+};
+
+/**
+ * Helper untuk request AI dengan dukungan multi-proxy dan fallback otomatis ke native fetch
+ */
+const fetchAiWithProxy = async (url, options) => {
+  const proxyConfig = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || '';
+  const proxies = proxyConfig.split(',').map(p => p.trim()).filter(Boolean);
+
+  if (proxies.length === 0) {
+    return await fetch(url, options);
+  }
+
+  let lastError;
+  for (const proxy of proxies) {
+    try {
+      return await requestHttpsViaProxy(url, options, proxy);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+};
 
 export const getQuizzesByProvince = async (req, res) => {
   try {
@@ -79,7 +166,7 @@ export const deleteQuiz = async (req, res) => {
 };
 
 /**
- * Generate quiz questions using Gemini AI grounded ONLY on database content of the province
+ * Generate quiz questions using AI grounded ONLY on database content of the province
  */
 export const generateAiQuizzes = async (req, res) => {
   try {
@@ -87,7 +174,7 @@ export const generateAiQuizzes = async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ success: false, message: 'GEMINI_API_KEY belum dikonfigurasi di server backend' });
+      return res.status(500).json({ success: false, message: 'Kunci API kecerdasan buatan belum dikonfigurasi di server backend' });
     }
 
     if (!province_slug) {
@@ -137,9 +224,9 @@ ATURAN SANGAT KETAT:
 DATA RESMI PROVINSI DARI DATABASE:
 ${JSON.stringify(contextData, null, 2)}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+    const aiEndpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
-    const aiResponse = await fetch(geminiUrl, {
+    const aiResponse = await fetchAiWithProxy(aiEndpointUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -150,7 +237,7 @@ ${JSON.stringify(contextData, null, 2)}`;
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      return res.status(502).json({ success: false, message: `Gemini API error: ${errText}` });
+      return res.status(500).json({ success: false, message: `Gagal memproses soal AI: ${errText}` });
     }
 
     const aiData = await aiResponse.json();
@@ -169,7 +256,7 @@ ${JSON.stringify(contextData, null, 2)}`;
 
     res.json({
       success: true,
-      message: `Berhasil generate ${formatted.length} soal kuis dengan Gemini AI dari data database`,
+      message: `Berhasil generate ${formatted.length} soal kuis dengan AI dari data database`,
       data: formatted,
     });
   } catch (error) {

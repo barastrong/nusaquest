@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { getDifficultyInfo } from '../MapPage';
-import { FiKey } from 'react-icons/fi';
+import { FiKey, FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
+import { useAuth } from '../../../context/AuthContext';
+import { getProvinceQuizProgress } from '../../../utils/localStorage';
 
 const nameToSlug = {
   'Aceh': 'aceh', 'Sumatera Utara': 'sumatera-utara', 'Sumatera Barat': 'sumatera-barat',
@@ -22,10 +24,15 @@ const nameToSlug = {
 
 export default function RegionPopup({ regionName, regionId, onClose }) {
   const navigate = useNavigate();
+  const { getProvinceProgress } = useAuth();
   const { label, color, keyReward } = getDifficultyInfo(regionId);
 
+  const slug = regionId || nameToSlug[regionName] || regionName.toLowerCase().replace(/\s+/g, '-');
+  const progress = getProvinceProgress
+    ? getProvinceProgress(slug, 'quiz')
+    : getProvinceQuizProgress(slug);
+
   const handleDetailClick = () => {
-    const slug = nameToSlug[regionName] || regionName.toLowerCase().replace(/\s+/g, '-');
     onClose();
     setTimeout(() => navigate(`/map-games-detail/${slug}`), 100);
   };
@@ -38,7 +45,7 @@ export default function RegionPopup({ regionName, regionId, onClose }) {
         <div className="popup-header">
           <div className="popup-title-section">
             <h3 className="popup-title">{regionName}</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
               <span className="htp-badge" style={{ background: color + '22', color, border: `1px solid ${color}` }}>
                 Level: {label}
               </span>
@@ -50,8 +57,37 @@ export default function RegionPopup({ regionName, regionId, onClose }) {
         </div>
 
         <div className="popup-content">
+          {/* Progress Tracker Pengerjaan */}
+          <div className="popup-progress-tracker">
+            <div className="ppt-header">
+              <span className="ppt-title">Status Belajar:</span>
+              <span className={`ppt-status-tag ${progress.isCompleted ? 'status-completed' : progress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                {progress.isCompleted ? (
+                  <><FiCheckCircle /> Sudah Selesai</>
+                ) : progress.hasAttempted ? (
+                  <><FiRotateCw /> Sedang Belajar</>
+                ) : (
+                  <><FiClock /> Belum Dikerjakan</>
+                )}
+              </span>
+            </div>
+
+            <div className="ppt-stats-grid">
+              <div className="ppt-stat-col">
+                <span className="ppt-stat-label">Jumlah Percobaan</span>
+                <span className="ppt-stat-val">{progress.attempts > 0 ? `${progress.attempts} kali` : '0 kali'}</span>
+              </div>
+              <div className="ppt-stat-col">
+                <span className="ppt-stat-label">Skor Tertinggi</span>
+                <span className="ppt-stat-val highlight-gold">
+                  <FiAward className="stat-award-icon" /> {progress.attempts > 0 ? `${progress.highScore}/5` : '-'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <p className="popup-detail-text">
-            Jelajahi budaya, wisata, dan kuliner khas {regionName}. Klaim reward kunci setelah selesai membaca!
+            Jelajahi budaya, wisata, dan kuliner khas {regionName}. Selesaikan tantangan untuk klaim reward kunci!
           </p>
           <div className="popup-actions">
             <button className="popup-btn-primary" onClick={handleDetailClick}>

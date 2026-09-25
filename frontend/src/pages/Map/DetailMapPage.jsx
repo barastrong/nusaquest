@@ -4,13 +4,21 @@ import { ClipLoader } from 'react-spinners';
 import { provinceApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
+import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
+import { getProvinceQuizProgress } from '../../utils/localStorage';
 import '../../styles/detailmap.css';
 
 export default function DetailMapPage() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const { getProvinceProgress } = useAuth();
   const [province, setProvince] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const quizProgress = getProvinceProgress
+    ? getProvinceProgress(name, 'quiz')
+    : getProvinceQuizProgress(name);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -224,6 +232,48 @@ export default function DetailMapPage() {
           </div>
         </section>
       )}
+
+      {/* Learning Progress Summary */}
+      <section className="detail-progress-section reveal">
+        <div className="detail-container">
+          <div className="detail-progress-card">
+            <div className="dpc-header">
+              <div className="dpc-header-left">
+                <span className="section-label">Perkembangan Belajar</span>
+                <h3 className="dpc-title">Status Modul {province.name}</h3>
+              </div>
+              <div className={`dpc-status-badge ${quizProgress.isCompleted ? 'status-completed' : quizProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                {quizProgress.isCompleted ? (
+                  <><FiCheckCircle /> Sudah Pernah Lulus</>
+                ) : quizProgress.hasAttempted ? (
+                  <><FiRotateCw /> Sedang Belajar</>
+                ) : (
+                  <><FiClock /> Belum Dikerjakan</>
+                )}
+              </div>
+            </div>
+
+            <div className="dpc-grid">
+              <div className="dpc-stat-item">
+                <span className="dpc-stat-label">Jumlah Percobaan Quiz</span>
+                <span className="dpc-stat-value">{quizProgress.attempts > 0 ? `${quizProgress.attempts} kali` : '0 kali'}</span>
+              </div>
+              <div className="dpc-stat-item">
+                <span className="dpc-stat-label">Skor Tertinggi Quiz</span>
+                <span className="dpc-stat-value highlight-gold">
+                  <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/5` : '-'}
+                </span>
+              </div>
+              <div className="dpc-stat-item">
+                <span className="dpc-stat-label">Terakhir Dimainkan</span>
+                <span className="dpc-stat-value">
+                  {quizProgress.lastPlayedAt ? new Date(quizProgress.lastPlayedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="detail-cta reveal">
         <div className="detail-container">

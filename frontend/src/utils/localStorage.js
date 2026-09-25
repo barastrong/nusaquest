@@ -15,19 +15,20 @@ const DEFAULT_USER_DATA = {
   gamesPlayed: 0,
   completedGames: {}, // { provinceId: ['quiz', 'puzzle'] }
   claimedRewards: [], // [provinceId]
+  quizStats: {}, // { [provinceSlug]: { attempts: 0, highScore: 0, passed: false, lastScore: 0, lastPlayedAt: null } }
 };
 
 // Get user data
 export const getUserData = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-    
+
     if (!data) {
       console.log('💾 [getUserData] No data found, initializing default:', DEFAULT_USER_DATA);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(DEFAULT_USER_DATA));
       return { ...DEFAULT_USER_DATA };
     }
-    
+
     const userData = JSON.parse(data);
     // Ensure all required fields exist
     const mergedData = { ...DEFAULT_USER_DATA, ...userData };
@@ -53,6 +54,22 @@ export const saveUserData = (userData) => {
 export const syncFromBackend = (serverData) => {
   if (!serverData) return getUserData();
   const current = getUserData();
+
+  // Merge server quiz_stats
+  const mergedQuizStats = { ...(current.quizStats || {}) };
+  if (serverData.quiz_stats && typeof serverData.quiz_stats === 'object') {
+    for (const [p, stat] of Object.entries(serverData.quiz_stats)) {
+      const prev = mergedQuizStats[p] || { attempts: 0, highScore: 0, passed: false, lastScore: 0 };
+      mergedQuizStats[p] = {
+        attempts: Math.max(prev.attempts || 0, stat.attempts || stat.quiz_attempts || 0),
+        highScore: Math.max(prev.highScore || 0, stat.high_score || stat.quiz_high_score || 0),
+        passed: prev.passed || Boolean(stat.passed),
+        lastScore: stat.last_score !== undefined ? stat.last_score : prev.lastScore,
+        lastPlayedAt: stat.last_played_at || prev.lastPlayedAt,
+      };
+    }
+  }
+
   const updated = {
     ...current,
     keys: serverData.keys !== undefined ? serverData.keys : current.keys,
@@ -61,6 +78,7 @@ export const syncFromBackend = (serverData) => {
     claimedRewards: serverData.claimed_rewards || serverData.claimedRewards || current.claimedRewards || [],
     totalScore: serverData.total_score !== undefined ? serverData.total_score : (current.totalScore || 0),
     gamesPlayed: serverData.games_played !== undefined ? serverData.games_played : (current.gamesPlayed || 0),
+    quizStats: mergedQuizStats,
   };
   saveUserData(updated);
   return updated;
@@ -148,10 +166,92 @@ export const hasClaimedReward = (provinceId) => {
 // Save quiz score
 export const saveQuizScore = (regionId, score) => {
   const userData = getUserData();
-  userData.quizScores[regionId] = score;
+  userData.quizScores[regionId] = Math.max(userData.quizScores[regionId] || 0, score);
   userData.gamesPlayed++;
   userData.totalScore += score;
   return saveUserData(userData);
+};
+
+// Record quiz attempt & stats per province
+export const recordQuizAttempt = (provinceSlug, score, passed) => {
+  const userData = getUserData();
+  if (!userData.quizStats) userData.quizStats = {};
+
+  const current = userData.quizStats[provinceSlug] || {
+    attempts: 0,
+    highScore: 0,
+    passed: false,
+    lastScore: 0,
+    lastPlayedAt: null,
+  };
+
+  const newAttempts = (current.attempts || 0) + 1;
+  const newHighScore = Math.max(current.highScore || 0, score || 0);
+  const newPassed = current.passed || Boolean(passed);
+
+  userData.quizStats[provinceSlug] = {
+    attempts: newAttempts,
+    highScore: newHighScore,
+    passed: newPassed,
+    lastScore: score,
+    lastPlayedAt: new Date().toISOString(),
+  };
+
+  if (!userData.quizScores) userData.quizScores = {};
+  userData.quizScores[provinceSlug] = newHighScore;
+
+  if (passed) {
+    if (!userData.completedGames) userData.completedGames = {};
+    if (!userData.completedGames[provinceSlug]) userData.completedGames[provinceSlug] = [];
+    if (!userData.completedGames[provinceSlug].includes('quiz')) {
+      userData.completedGames[provinceSlug].push('quiz');
+    }
+  }
+
+  userData.gamesPlayed = (userData.gamesPlayed || 0) + 1;
+  userData.totalScore = (userData.totalScore || 0) + (score || 0);
+
+  saveUserData(userData);
+  return userData.quizStats[provinceSlug];
+};
+
+// Get quiz progress status, attempts counter, and highest score for a province
+export const getProvinceQuizProgress = (provinceSlug) => {
+  if (!provinceSlug) {
+    return {
+      isCompleted: false,
+      attempts: 0,
+      highScore: 0,
+      lastScore: 0,
+      hasAttempted: false,
+      lastPlayedAt: null,
+    };
+  }
+
+  const userData = getUserData();
+  const stat = userData.quizStats?.[provinceSlug] || null;
+  const isCompletedInGames = userData.completedGames?.[provinceSlug]?.includes('quiz') || false;
+  const highScoreInScores = userData.quizScores?.[provinceSlug] || 0;
+
+  const isCompleted = Boolean(stat?.passed || isCompletedInGames);
+  const attempts = stat?.attempts || (isCompletedInGames ? 1 : 0);
+  const highScore = Math.max(stat?.highScore || 0, highScoreInScores);
+  const lastScore = stat?.lastScore ?? highScore;
+
+  return {
+    isCompleted,
+    attempts,
+    highScore,
+    lastScore,
+    hasAttempted: attempts > 0,
+    lastPlayedAt: stat?.lastPlayedAt || null,
+  };
+};
+
+// Get all provinces progress summary
+export const getAllQuizProgress = () => {
+  const userData = getUserData();
+  return userData.quizStats || {};
 };
 
 // Save puzzle score

@@ -4,8 +4,8 @@ import { ClipLoader } from 'react-spinners';
 import { provinceApi, userApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
 import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt2 } from 'react-icons/hi';
-import { FiKey, FiCheckCircle, FiLock } from 'react-icons/fi';
-import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
+import { FiKey, FiCheckCircle, FiLock, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
+import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend, getProvinceQuizProgress } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../Games/MapPage';
 import '../../styles/detailmap.css';
@@ -13,12 +13,16 @@ import '../../styles/detailmap.css';
 export default function DetailMapPage() {
   const { name } = useParams();
   const navigate = useNavigate();
-  const { user, loading: authLoading, openAuthModal } = useAuth();
+  const { user, loading: authLoading, openAuthModal, getProvinceProgress } = useAuth();
   const [province, setProvince] = useState(null);
   const [claimed, setClaimed] = useState(false);
   const [canClaim, setCanClaim] = useState(false);
   const [showClaimAnim, setShowClaimAnim] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const quizProgress = getProvinceProgress
+    ? getProvinceProgress(name, 'quiz')
+    : getProvinceQuizProgress(name);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -283,6 +287,48 @@ export default function DetailMapPage() {
                 <p>{fact}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Learning Progress Summary */}
+      <section className="detail-progress-section reveal">
+        <div className="detail-container">
+          <div className="detail-progress-card">
+            <div className="dpc-header">
+              <div className="dpc-header-left">
+                <span className="section-label">Perkembangan Belajar</span>
+                <h3 className="dpc-title">Status Modul {province.name}</h3>
+              </div>
+              <div className={`dpc-status-badge ${quizProgress.isCompleted ? 'status-completed' : quizProgress.hasAttempted ? 'status-in-progress' : 'status-not-started'}`}>
+                {quizProgress.isCompleted ? (
+                  <><FiCheckCircle /> Sudah Pernah Lulus</>
+                ) : quizProgress.hasAttempted ? (
+                  <><FiRotateCw /> Sedang Belajar</>
+                ) : (
+                  <><FiClock /> Belum Dikerjakan</>
+                )}
+              </div>
+            </div>
+
+            <div className="dpc-grid">
+              <div className="dpc-stat-item">
+                <span className="dpc-stat-label">Jumlah Percobaan Quiz</span>
+                <span className="dpc-stat-value">{quizProgress.attempts > 0 ? `${quizProgress.attempts} kali` : '0 kali'}</span>
+              </div>
+              <div className="dpc-stat-item">
+                <span className="dpc-stat-label">Skor Tertinggi Quiz</span>
+                <span className="dpc-stat-value highlight-gold">
+                  <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/5` : '-'}
+                </span>
+              </div>
+              <div className="dpc-stat-item">
+                <span className="dpc-stat-label">Status Reward Kunci</span>
+                <span className="dpc-stat-value">
+                  {claimed ? 'Sudah Diklaim' : canClaim ? 'Siap Diklaim!' : 'Belum Terbuka'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -41,7 +41,69 @@ export const getUserProgress = async (req, res) => {
       user = created;
     }
 
-    res.json({ success: true, data: user });
+    // Hitung statistik kuis & attempt per provinsi dari game_history jika ada
+    const quizStats = {};
+    if (userId) {
+      const { data: history } = await supabase
+        .from('game_history')
+        .select('province_slug, game_type, score, passed, played_at')
+        .eq('user_id', userId)
+        .order('played_at', { ascending: false });
+
+      if (history && history.length > 0) {
+        for (const item of history) {
+          const p = item.province_slug;
+          if (!quizStats[p]) {
+            quizStats[p] = {
+              attempts: 0,
+              high_score: 0,
+              passed: false,
+              last_score: item.score || 0,
+              last_played_at: item.played_at,
+              quiz_attempts: 0,
+              quiz_high_score: 0,
+              puzzle_attempts: 0,
+              puzzle_high_score: 0,
+            };
+          }
+          quizStats[p].attempts += 1;
+          quizStats[p].high_score = Math.max(quizStats[p].high_score, item.score || 0);
+          if (item.passed) quizStats[p].passed = true;
+
+          if (item.game_type === 'quiz') {
+            quizStats[p].quiz_attempts += 1;
+            quizStats[p].quiz_high_score = Math.max(quizStats[p].quiz_high_score, item.score || 0);
+          } else if (item.game_type === 'puzzle') {
+            quizStats[p].puzzle_attempts += 1;
+            quizStats[p].puzzle_high_score = Math.max(quizStats[p].puzzle_high_score, item.score || 0);
+          }
+        }
+      }
+    }
+
+    // Gabungkan dengan completed_games jika ada provinsi yang berstatus selesai
+    if (user.completed_games && typeof user.completed_games === 'object') {
+      for (const [p, games] of Object.entries(user.completed_games)) {
+        if (!quizStats[p]) {
+          quizStats[p] = {
+            attempts: 1,
+            high_score: 0,
+            passed: true,
+            last_score: 0,
+            last_played_at: null,
+            quiz_attempts: (games || []).includes('quiz') ? 1 : 0,
+            quiz_high_score: 0,
+            puzzle_attempts: (games || []).includes('puzzle') ? 1 : 0,
+            puzzle_high_score: 0,
+          };
+        } else {
+          quizStats[p].passed = true;
+          quizStats[p].attempts = Math.max(quizStats[p].attempts, 1);
+        }
+      }
+    }
+
+    res.json({ success: true, data: { ...user, quiz_stats: quizStats } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -178,7 +240,35 @@ export const recordGameScore = async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: updated });
+    // Ambil statistik terkini untuk provinsi ini
+    let provinceStats = {
+      attempts: 1,
+      high_score: score || 0,
+      passed: Boolean(passed),
+      last_score: score || 0,
+    };
+
+    if (userId) {
+      const { data: hist } = await supabase
+        .from('game_history')
+        .select('score, passed')
+        .eq('user_id', userId)
+        .eq('province_slug', provinceSlug);
+
+      if (hist && hist.length > 0) {
+        provinceStats.attempts = hist.length;
+        provinceStats.high_score = Math.max(...hist.map((h) => h.score || 0));
+        provinceStats.passed = hist.some((h) => h.passed);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...updated,
+        province_stats: provinceStats,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

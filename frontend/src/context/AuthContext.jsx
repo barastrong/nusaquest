@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, userApi } from '../services/api';
-import { getDeviceId, getUserData, updateUserData, syncFromBackend, resetUserData } from '../utils/localStorage';
+import { getDeviceId, getUserData, updateUserData, syncFromBackend, resetUserData, getProvinceQuizProgress } from '../utils/localStorage';
 
 const AuthContext = createContext(null);
 
@@ -158,6 +158,40 @@ export function AuthProvider({ children }) {
     setIsHistoryModalOpen(false);
   };
 
+  const getProvinceProgress = useCallback((provinceSlug, gameType = 'quiz') => {
+    if (!provinceSlug) {
+      return {
+        isCompleted: false,
+        attempts: 0,
+        highScore: 0,
+        lastScore: 0,
+        hasAttempted: false,
+        lastPlayedAt: null,
+      };
+    }
+    const local = getProvinceQuizProgress(provinceSlug);
+    const provHistory = (gameHistory || []).filter(
+      (h) => h.province_slug === provinceSlug && (!gameType || h.game_type === gameType)
+    );
+
+    if (provHistory.length > 0) {
+      const attempts = Math.max(local.attempts, provHistory.length);
+      const highScore = Math.max(local.highScore, ...provHistory.map((h) => h.score || 0));
+      const isCompleted = local.isCompleted || provHistory.some((h) => h.passed);
+      const lastItem = provHistory[0];
+      return {
+        isCompleted,
+        attempts,
+        highScore,
+        lastScore: lastItem?.score ?? local.lastScore,
+        hasAttempted: attempts > 0,
+        lastPlayedAt: lastItem?.played_at || local.lastPlayedAt,
+      };
+    }
+
+    return local;
+  }, [gameHistory, userProgress]);
+
   const value = {
     user,
     token,
@@ -168,6 +202,7 @@ export function AuthProvider({ children }) {
     syncProgressWithBackend,
     gameHistory,
     fetchHistory,
+    getProvinceProgress,
     login,
     register,
     logout,
