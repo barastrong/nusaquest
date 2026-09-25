@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
-import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiKey, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
 import { ClipLoader } from 'react-spinners';
 import { gameApi, userApi } from '../../services/api';
 import { markGameCompleted, claimProvinceReward, hasClaimedReward, getUserData, getDeviceId, syncFromBackend } from '../../utils/localStorage';
 import { getDifficultyInfo } from './MapPage';
+import successSfx from '../../sounds/success.mp3';
+import failedSfx from '../../sounds/failed.mp3';
+
+const sfx = { success: new Audio(successSfx), failed: new Audio(failedSfx) };
+const playSfx = (ok) => {
+  const a = ok ? sfx.success : sfx.failed;
+  a.currentTime = 0;
+  a.play().catch(() => {});
+};
 
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   const [questions, setQuestions] = useState([]);
@@ -13,6 +22,8 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   const [answered, setAnswered] = useState(false);
   const [finished, setFinished] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const [confetti, setConfetti] = useState([]);
   const [rewardToast, setRewardToast] = useState(null);
   const [alreadyClaimed] = useState(() => provinceSlug ? hasClaimedReward(provinceSlug) : false);
 
@@ -54,7 +65,22 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     const newScore = correct ? score + 1 : score;
     if (correct) setScore(newScore);
 
+    playSfx(correct);
+    setFeedback({ correct, show: true });
+
+    if (correct) {
+      const pieces = Array.from({ length: 24 }, (_, j) => ({
+        id: j,
+        x: Math.random() * 100,
+        delay: Math.random() * 0.5,
+        color: ['#6fcf97','#f7b24f','#e57373','#5a9bd5','#c89b3c'][j % 5],
+      }));
+      setConfetti(pieces);
+    }
+
     setTimeout(() => {
+      setFeedback(null);
+      setConfetti([]);
       if (qIdx + 1 >= questions.length) {
         const finalScore = newScore;
         const passed = finalScore >= PASS_THRESHOLD;
@@ -107,6 +133,8 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     setAnswered(false);
     setFinished(false);
     setSelectedAnswer(null);
+    setFeedback(null);
+    setConfetti([]);
   };
 
   const passed = score >= PASS_THRESHOLD;
@@ -186,11 +214,32 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
           {provinceName ? `Quiz — ${provinceName}` : 'Quiz Budaya Indonesia'}
         </div>
       </div>
+
+      <div className={`quiz-feedback quiz-feedback-${feedback?.correct ? 'correct' : 'wrong'} ${feedback?.show ? 'show' : ''}`}>
+        <div className="qf-icon">
+          {feedback?.correct ? <FiCheckCircle /> : <FiXCircle />}
+        </div>
+        <div className="qf-title">{feedback?.correct ? 'Benar!' : 'Salah!'}</div>
+        <div className="qf-sub">
+          {feedback?.correct
+            ? 'Jawaban kamu tepat, hebat!'
+            : <>Jawaban benar: <span className="qf-ans">{currentQuestion?.opts[currentQuestion?.ans]}</span></>}
+        </div>
+      </div>
+
+      {confetti.map(c => (
+        <span
+          key={c.id}
+          className="qf-confetti"
+          style={{ left: `${c.x}%`, background: c.color, animationDelay: `${c.delay}s` }}
+        />
+      ))}
+
       <div className="quiz-progress-bar">
         <div className="quiz-progress-fill" style={{ width: `${((qIdx + 1) / questions.length) * 100}%` }} />
       </div>
 
-      <div className="quiz-card">
+      <div className={`quiz-card ${feedback?.show && !feedback?.correct ? 'quiz-shake' : ''}`}>
         <div className="quiz-num">Soal {qIdx + 1} dari {questions.length}</div>
         <div className="quiz-question">{currentQuestion.q}</div>
         <div className="quiz-options">
