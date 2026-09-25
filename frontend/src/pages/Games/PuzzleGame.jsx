@@ -16,6 +16,25 @@ const playSfx = (ok) => {
   a.play().catch(() => {});
 };
 
+// Suara "put" saat piece di-drop — generated via Web Audio API
+let audioCtx = null;
+function playDropSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.12);
+  } catch {}
+}
+
 const GRID = 3; // 3×3 = 9 kepingan — gambar lebih jelas, tidak terpotong
 
 const DEFAULT_PUZZLES = [
@@ -252,6 +271,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
       const a = draggingRef.current, b = dropTargetRef.current;
       [a.xPos, b.xPos] = [b.xPos, a.xPos];
       [a.yPos, b.yPos] = [b.yPos, a.yPos];
+      playDropSound();
       setMoves(m => m + 1);
     }
     if (imgRef.current) drawPieces(stageRef.current, imgRef.current, piecesRef.current);
