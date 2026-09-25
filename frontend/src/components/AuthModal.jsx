@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/authModal.css';
 
@@ -9,7 +9,9 @@ export default function AuthModal() {
     authModalTab,
     setAuthModalTab,
     login,
-    register,
+    requestRegister,
+    verifyRegistrationOtp,
+    resendRegistrationOtp,
   } = useAuth();
 
   const [identifier, setIdentifier] = useState('');
@@ -19,28 +21,74 @@ export default function AuthModal() {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
+  // OTP flow states
+  const [regStep, setRegStep] = useState('form'); // 'form' | 'otp'
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const otpInputRefs = useRef([]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    let timer;
+    if (resendCountdown > 0) {
+      timer = setInterval(() => {
+        setResendCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [resendCountdown]);
+
+  // Focus first OTP input when step changes to 'otp'
+  useEffect(() => {
+    if (regStep === 'otp' && isAuthModalOpen) {
+      const timer = setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [regStep, isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
 
   const resetForm = () => {
     setError('');
+    setSuccessMsg('');
     setIdentifier('');
     setPassword('');
     setRegUsername('');
     setRegEmail('');
     setRegPassword('');
+    setRegStep('form');
+    setOtpDigits(['', '', '', '', '', '']);
+    setResendCountdown(0);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    closeAuthModal();
   };
 
   const handleTabSwitch = (tab) => {
     setError('');
+    setSuccessMsg('');
     setAuthModalTab(tab);
+    if (tab === 'register') {
+      setRegStep('form');
+    }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
     try {
       await login(identifier, password);
@@ -52,29 +100,126 @@ export default function AuthModal() {
     }
   };
 
-  const handleRegisterSubmit = async (e) => {
+  const handleRegisterFormSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
     try {
-      await register({
+      const res = await requestRegister({
         username: regUsername,
         email: regEmail,
         displayName: regUsername,
         password: regPassword,
       });
-      resetForm();
+      setRegStep('otp');
+      setResendCountdown(60);
+      setSuccessMsg(res?.message || 'Kode verifikasi telah dikirim ke email kamu.');
+      setOtpDigits(['', '', '', '', '', '']);
     } catch (err) {
-      setError(err.message || 'Gagal mendaftar. Silakan coba lagi.');
+      setError(err.message || 'Gagal mengirim kode verifikasi. Periksa kembali data kamu.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOtpChange = (index, value) => {
+    const cleanVal = value.replace(/\D/g, '');
+    if (!cleanVal && value !== '') return;
+
+    const newDigits = [...otpDigits];
+    newDigits[index] = cleanVal.slice(-1);
+    setOtpDigits(newDigits);
+    setError('');
+
+    if (cleanVal && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (!otpDigits[index] && index > 0) {
+        const newDigits = [...otpDigits];
+        newDigits[index - 1] = '';
+        setOtpDigits(newDigits);
+        otpInputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pastedData) return;
+
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pastedData[i] || '';
+    }
+    setOtpDigits(newDigits);
+    setError('');
+
+    const nextIdx = Math.min(pastedData.length, 5);
+    otpInputRefs.current[nextIdx]?.focus();
+  };
+
+  const handleVerifyOtpSubmit = async (e) => {
+    e.preventDefault();
+    const fullOtp = otpDigits.join('');
+    if (fullOtp.length !== 6) {
+      setError('Masukkan 6 digit kode OTP secara lengkap.');
+      return;
+    }
+
+    setError('');
+    setSuccessMsg('');
+    setLoading(true);
+    try {
+      await verifyRegistrationOtp({
+        email: regEmail,
+        otp: fullOtp,
+      });
+      resetForm();
+    } catch (err) {
+      setError(err.message || 'Kode verifikasi tidak cocok atau telah kedaluwarsa.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCountdown > 0 || resendLoading) return;
+    setError('');
+    setSuccessMsg('');
+    setResendLoading(true);
+    try {
+      const res = await resendRegistrationOtp(regEmail);
+      setResendCountdown(60);
+      setSuccessMsg(res?.message || 'Kode verifikasi baru berhasil dikirim!');
+      setOtpDigits(['', '', '', '', '', '']);
+      otpInputRefs.current[0]?.focus();
+    } catch (err) {
+      setError(err.message || 'Gagal mengirim ulang kode OTP.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleChangeEmail = () => {
+    setRegStep('form');
+    setError('');
+    setSuccessMsg('');
+  };
+
   return (
-    <div className="auth-modal-overlay" onClick={closeAuthModal}>
+    <div className="auth-modal-overlay" onClick={handleClose}>
       <div className="auth-modal-card" onClick={(e) => e.stopPropagation()}>
-        <button className="auth-modal-close" onClick={closeAuthModal} aria-label="Tutup">
+        <button className="auth-modal-close" onClick={handleClose} aria-label="Tutup">
           ✕
         </button>
 
@@ -85,6 +230,8 @@ export default function AuthModal() {
           <p className="auth-sub">
             {authModalTab === 'login'
               ? 'Masuk untuk menyimpan riwayat dan skor petualanganmu'
+              : regStep === 'otp'
+              ? 'Langkah terakhir: Verifikasi keaktifan email kamu'
               : 'Daftar akun penjelajah budaya Nusantara'}
           </p>
         </div>
@@ -107,6 +254,7 @@ export default function AuthModal() {
         </div>
 
         {error && <div className="auth-error-banner">{error}</div>}
+        {successMsg && !error && <div className="otp-desc-box">{successMsg}</div>}
 
         {authModalTab === 'login' ? (
           <form className="auth-form" onSubmit={handleLoginSubmit}>
@@ -145,14 +293,16 @@ export default function AuthModal() {
               <span onClick={() => handleTabSwitch('register')}>Daftar di sini</span>
             </p>
           </form>
-        ) : (
-          <form className="auth-form" onSubmit={handleRegisterSubmit}>
+        ) : regStep === 'form' ? (
+          <form className="auth-form" onSubmit={handleRegisterFormSubmit}>
             <div className="auth-field">
               <label htmlFor="reg-username">Username</label>
               <input
                 id="reg-username"
                 type="text"
                 required
+                minLength={3}
+                maxLength={30}
                 placeholder="contoh: penjelajah01"
                 value={regUsername}
                 onChange={(e) => setRegUsername(e.target.value)}
@@ -161,7 +311,7 @@ export default function AuthModal() {
             </div>
 
             <div className="auth-field">
-              <label htmlFor="reg-email">Email</label>
+              <label htmlFor="reg-email">Email Aktif</label>
               <input
                 id="reg-email"
                 type="email"
@@ -188,13 +338,76 @@ export default function AuthModal() {
             </div>
 
             <button type="submit" className="auth-submit-btn" disabled={loading}>
-              {loading ? 'Mendaftarkan...' : 'Buat Akun'}
+              {loading ? 'Mengirim Kode OTP...' : 'Lanjut Verifikasi Email'}
             </button>
 
             <p className="auth-switch-text">
               Sudah punya akun?{' '}
               <span onClick={() => handleTabSwitch('login')}>Masuk di sini</span>
             </p>
+          </form>
+        ) : (
+          <form className="auth-form" onSubmit={handleVerifyOtpSubmit}>
+            <div className="otp-desc-box">
+              Masukkan 6 digit kode rahasia yang telah dikirim ke{' '}
+              <span className="otp-target-email">{regEmail}</span>
+            </div>
+
+            <div className="otp-inputs-wrapper" onPaste={handleOtpPaste}>
+              {otpDigits.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => (otpInputRefs.current[idx] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={1}
+                  className={`otp-digit-input ${digit ? 'filled' : ''}`}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                  autoComplete="one-time-code"
+                />
+              ))}
+            </div>
+
+            <button
+              type="submit"
+              className="auth-submit-btn"
+              disabled={loading || otpDigits.join('').length !== 6}
+            >
+              {loading ? 'Memverifikasi...' : 'Verifikasi & Mulai Petualangan'}
+            </button>
+
+            <div className="otp-resend-row">
+              {resendCountdown > 0 ? (
+                <span className="otp-timer-text">
+                  Kirim ulang kode dalam{' '}
+                  <span className="otp-timer-highlight">{resendCountdown}s</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="otp-resend-btn"
+                  onClick={handleResendOtp}
+                  disabled={resendLoading}
+                >
+                  {resendLoading ? 'Mengirim ulang...' : 'Kirim Ulang Kode OTP'}
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="otp-change-email-btn"
+                onClick={handleChangeEmail}
+              >
+                Salah ketik email? <span>Ganti Email</span>
+              </button>
+
+              <p className="otp-info-note">
+                Tips: Jika email belum masuk dalam 1 menit, periksa folder Spam atau Junk.
+              </p>
+            </div>
           </form>
         )}
 
@@ -205,7 +418,7 @@ export default function AuthModal() {
           <button
             type="button"
             className="auth-guest-btn"
-            onClick={closeAuthModal}
+            onClick={handleClose}
           >
             Lanjut Jelajah sebagai Tamu (Maks. 5 Provinsi)
           </button>

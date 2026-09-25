@@ -116,6 +116,58 @@ export function AuthProvider({ children }) {
     throw new Error(res.message || 'Login gagal.');
   };
 
+  const requestRegister = async ({ username, email, password, displayName }) => {
+    const deviceId = getDeviceId();
+    const res = await authApi.registerRequest({
+      username,
+      email,
+      password,
+      displayName,
+      deviceId,
+    });
+    return res;
+  };
+
+  const verifyRegistrationOtp = async ({ email, otp }) => {
+    const completedCount = getGuestCompletedProvincesCount();
+    const bonusKeys = completedCount > 0 ? completedCount : 1;
+
+    const res = await authApi.verifyOtp({
+      email,
+      otp,
+    });
+
+    if (res.success && res.token) {
+      localStorage.setItem('nusaquest_token', res.token);
+      setToken(res.token);
+      setUser(res.user);
+      setIsAuthModalOpen(false);
+
+      const currentData = getUserData();
+      currentData.keys = (currentData.keys || 0) + bonusKeys;
+      saveUserData(currentData);
+      setUserProgress({ ...currentData });
+
+      if (completedCount > 0) {
+        setGuestRewardInfo({
+          keysEarned: bonusKeys,
+          completedCount,
+        });
+        setIsRewardModalOpen(true);
+      }
+
+      await syncProgressWithBackend();
+      fetchHistory();
+      return res.user;
+    }
+    throw new Error(res.message || 'Verifikasi OTP gagal.');
+  };
+
+  const resendRegistrationOtp = async (email) => {
+    const res = await authApi.resendOtp({ email });
+    return res;
+  };
+
   const register = async ({ username, email, password, displayName }) => {
     const deviceId = getDeviceId();
     const completedCount = getGuestCompletedProvincesCount();
@@ -234,6 +286,9 @@ export function AuthProvider({ children }) {
     getProvinceProgress,
     login,
     register,
+    requestRegister,
+    verifyRegistrationOtp,
+    resendRegistrationOtp,
     logout,
     isAuthModalOpen,
     authModalTab,

@@ -22,6 +22,12 @@ async function fetchJson(endpoint, options = {}) {
 }
 
 export const authApi = {
+  registerRequest: (data) =>
+    fetchJson(API_ENDPOINTS.auth.registerRequest, { method: 'POST', body: JSON.stringify(data) }),
+  verifyOtp: (data) =>
+    fetchJson(API_ENDPOINTS.auth.verifyOtp, { method: 'POST', body: JSON.stringify(data) }),
+  resendOtp: (data) =>
+    fetchJson(API_ENDPOINTS.auth.resendOtp, { method: 'POST', body: JSON.stringify(data) }),
   register: (data) => fetchJson(API_ENDPOINTS.auth.register, { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => fetchJson(API_ENDPOINTS.auth.login, { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => fetchJson(API_ENDPOINTS.auth.me),

@@ -1,5 +1,273 @@
+import crypto from 'crypto';
 import { supabase } from '../config/supabase.js';
 import { hashPassword, verifyPassword, createToken } from '../utils/auth.js';
+import { sendOtpEmail } from '../utils/mailer.js';
+import {
+  setPendingRegistration,
+  getPendingRegistration,
+  canResendOtp,
+  updatePendingOtp,
+  verifyRegistrationOtp,
+} from '../utils/otpStore.js';
+
+/**
+ * Step 1 Registrasi: Validasi data, buat OTP 6 digit, dan kirim ke email
+ */
+export const requestRegister = async (req, res) => {
+  try {
+    const { username, email, password, displayName, deviceId } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username, email, dan password wajib diisi.',
+      });
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase();
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    if (cleanUsername.length < 3 || cleanUsername.length > 30) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username harus memiliki panjang 3-30 karakter.',
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format email tidak valid.',
+      });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password minimal 6 karakter.',
+      });
+    }
+
+    // Cek apakah username atau email sudah ada di database
+    const { data: existingUser, error: checkErr } = await supabase
+      .from('users')
+      .select('id, username, email')
+      .or(`username.eq.${cleanUsername},email.eq.${cleanEmail}`)
+      .limit(1);
+
+    if (checkErr) throw checkErr;
+
+    if (existingUser && existingUser.length > 0) {
+      const match = existingUser[0];
+      if (match.username === cleanUsername) {
+        return res.status(400).json({ success: false, message: 'Username sudah digunakan.' });
+      }
+      return res.status(400).json({ success: false, message: 'Email sudah terdaftar.' });
+    }
+
+    // Cek apakah email sedang dalam cooldown resend
+    const resendCheck = canResendOtp(cleanEmail);
+    if (!resendCheck.allowed && resendCheck.remainingSeconds) {
+      return res.status(429).json({
+        success: false,
+        message: resendCheck.message,
+        remainingSeconds: resendCheck.remainingSeconds,
+      });
+    }
+
+    // Generate kode OTP 6-digit numerik acak
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const passwordHash = hashPassword(password);
+    const finalDisplayName = displayName ? String(displayName).trim() : cleanUsername;
+
+    // Simpan ke in-memory pending registrations
+    setPendingRegistration(cleanEmail, {
+      username: cleanUsername,
+      email: cleanEmail,
+      passwordHash,
+      displayName: finalDisplayName,
+      deviceId,
+      otp: otpCode,
+    });
+
+    // Kirim email OTP via Nodemailer (atau log console jika di dev)
+    await sendOtpEmail(cleanEmail, otpCode, finalDisplayName);
+
+    return res.json({
+      success: true,
+      message: 'Kode OTP verifikasi telah dikirim ke email kamu.',
+      email: cleanEmail,
+    });
+  } catch (error) {
+    console.error('Error in requestRegister:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Step 2 Registrasi: Verifikasi kode OTP dan simpan user baru ke database
+ */
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email dan kode OTP wajib diisi.',
+      });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+
+    // Verifikasi dari in-memory pending store
+    const verifyResult = verifyRegistrationOtp(cleanEmail, cleanOtp);
+    if (!verifyResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: verifyResult.message,
+      });
+    }
+
+    const { username, passwordHash, displayName, deviceId } = verifyResult.data;
+
+    // Double check agar tidak duplikat di Supabase
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id, username, email')
+      .or(`username.eq.${username},email.eq.${cleanEmail}`)
+      .limit(1);
+
+    if (existingUser && existingUser.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Akun dengan username atau email ini sudah terdaftar.',
+      });
+    }
+
+    // Simpan user baru ke Supabase
+    const { data: newUser, error: insertErr } = await supabase
+      .from('users')
+      .insert({
+        username,
+        email: cleanEmail,
+        password_hash: passwordHash,
+        display_name: displayName,
+      })
+      .select('id, username, email, display_name, created_at')
+      .single();
+
+    if (insertErr) throw insertErr;
+
+    // Hubungkan atau buat user_progress
+    if (deviceId) {
+      const { data: existingProgress } = await supabase
+        .from('user_progress')
+        .select('id, user_id, keys')
+        .eq('device_id', deviceId)
+        .maybeSingle();
+
+      if (existingProgress && !existingProgress.user_id) {
+        await supabase
+          .from('user_progress')
+          .update({
+            user_id: newUser.id,
+            keys: Math.max(existingProgress.keys || 0, 1),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingProgress.id);
+      } else {
+        await supabase.from('user_progress').insert({
+          user_id: newUser.id,
+          device_id: deviceId,
+          keys: 1,
+          total_score: 0,
+          games_played: 0,
+          unlocked_provinces: [],
+          completed_games: {},
+          claimed_rewards: [],
+        });
+      }
+    } else {
+      await supabase.from('user_progress').insert({
+        user_id: newUser.id,
+        device_id: `user_${newUser.id}`,
+        keys: 1,
+        total_score: 0,
+        games_played: 0,
+        unlocked_provinces: [],
+        completed_games: {},
+        claimed_rewards: [],
+      });
+    }
+
+    const token = createToken({
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Email berhasil diverifikasi! Akun kamu telah aktif.',
+      token,
+      user: newUser,
+    });
+  } catch (error) {
+    console.error('Error in verifyOtp:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Kirim ulang kode OTP jika belum kedaluwarsa atau hilang
+ */
+export const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Alamat email wajib diisi.',
+      });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const pending = getPendingRegistration(cleanEmail);
+
+    if (!pending) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sesi pendaftaran tidak ditemukan atau sudah kedaluwarsa. Silakan lakukan pendaftaran ulang.',
+      });
+    }
+
+    const resendCheck = canResendOtp(cleanEmail);
+    if (!resendCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: resendCheck.message,
+        remainingSeconds: resendCheck.remainingSeconds,
+      });
+    }
+
+    const newOtp = crypto.randomInt(100000, 1000000).toString();
+    updatePendingOtp(cleanEmail, newOtp);
+
+    await sendOtpEmail(cleanEmail, newOtp, pending.data.displayName);
+
+    return res.json({
+      success: true,
+      message: 'Kode OTP baru telah berhasil dikirim ke email kamu.',
+    });
+  } catch (error) {
+    console.error('Error in resendOtp:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const register = async (req, res) => {
   try {

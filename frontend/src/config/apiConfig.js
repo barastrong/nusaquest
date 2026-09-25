@@ -10,6 +10,9 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   auth: {
+    registerRequest: '/auth/register-request',
+    verifyOtp: '/auth/verify-otp',
+    resendOtp: '/auth/resend-otp',
     register: '/auth/register',
     login: '/auth/login',
     me: '/auth/me',

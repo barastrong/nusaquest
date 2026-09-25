@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiClock, FiLogOut } from 'react-icons/fi';
+import { FiClock, FiLogOut, FiLogIn } from 'react-icons/fi';
 import { getTheme, saveTheme } from '../utils/localStorage';
 import { useAuth } from '../context/AuthContext';
 import '../styles/navbar.css';
@@ -118,43 +118,44 @@ export default function Navbar() {
           >
             Mulai Jelajah
           </button>
-        </div>
 
-        {/* User Auth Section (Desktop) */}
-        {!user ? (
-          <button
-            className="nav-auth-btn"
-            onClick={() => openAuthModal('login')}
-          >
-            Masuk
-          </button>
-        ) : (
-          <div className="nav-user-container" ref={dropdownRef}>
-            <button
-              className="nav-user-pill"
-              onClick={() => setUserDropdownOpen((prev) => !prev)}
-            >
-              <span className="nav-user-avatar">
-                {(user.display_name || user.username || 'U').charAt(0).toUpperCase()}
-              </span>
-              <span>{user.display_name || user.username}</span>
-            </button>
-
-            {userDropdownOpen && (
-              <div className="nav-user-dropdown">
+          {/* User Auth Section (Mobile) */}
+          <div className="nav-auth-mobile">
+            <div className="nav-mobile-divider" />
+            {!user ? (
+              <button
+                className="nav-btn nav-auth-mobile-btn"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  openAuthModal('login');
+                }}
+              >
+                <FiLogIn size={16} /> Masuk
+              </button>
+            ) : (
+              <div className="nav-user-mobile">
+                <div className="nav-user-mobile-info">
+                  <span className="nav-user-avatar">
+                    {(user.display_name || user.username || 'U').charAt(0).toUpperCase()}
+                  </span>
+                  <div className="nav-user-mobile-text">
+                    <span className="nav-user-mobile-name">{user.display_name || user.username}</span>
+                    <span className="nav-user-mobile-status">Penjelajah Budaya</span>
+                  </div>
+                </div>
                 <button
-                  className="dropdown-item"
+                  className="nav-btn nav-user-mobile-action"
                   onClick={() => {
-                    setUserDropdownOpen(false);
+                    setIsMenuOpen(false);
                     openHistoryModal();
                   }}
                 >
                   <FiClock size={16} /> Riwayat Game
                 </button>
                 <button
-                  className="dropdown-item danger"
+                  className="nav-btn nav-user-mobile-action danger"
                   onClick={() => {
-                    setUserDropdownOpen(false);
+                    setIsMenuOpen(false);
                     logout();
                   }}
                 >
@@ -162,8 +163,61 @@ export default function Navbar() {
                 </button>
               </div>
             )}
+            <button
+              className="nav-btn theme-btn-mobile"
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? '🌙 Mode Terang' : '☀️ Mode Gelap'}
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* User Auth Section (Desktop) */}
+        <div className="nav-auth-desktop">
+          {!user ? (
+            <button
+              className="nav-auth-btn"
+              onClick={() => openAuthModal('login')}
+            >
+              Masuk
+            </button>
+          ) : (
+            <div className="nav-user-container" ref={dropdownRef}>
+              <button
+                className="nav-user-pill"
+                onClick={() => setUserDropdownOpen((prev) => !prev)}
+              >
+                <span className="nav-user-avatar">
+                  {(user.display_name || user.username || 'U').charAt(0).toUpperCase()}
+                </span>
+                <span>{user.display_name || user.username}</span>
+              </button>
+
+              {userDropdownOpen && (
+                <div className="nav-user-dropdown">
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setUserDropdownOpen(false);
+                      openHistoryModal();
+                    }}
+                  >
+                    <FiClock size={16} /> Riwayat Game
+                  </button>
+                  <button
+                    className="dropdown-item danger"
+                    onClick={() => {
+                      setUserDropdownOpen(false);
+                      logout();
+                    }}
+                  >
+                    <FiLogOut size={16} /> Keluar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <button
           className="theme-toggle theme-toggle-desktop"
