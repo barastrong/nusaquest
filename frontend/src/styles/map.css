@@ -211,6 +211,12 @@
 [data-theme="light"] .fullmap-complete-banner { background: rgba(64,145,108,0.1); border-color: rgba(64,145,108,0.3); color: #2d6a4f; }
 [data-theme="light"] .htp-trigger-btn { background: rgba(0,0,0,0.04); border-color: rgba(139,94,32,0.2); color: var(--text2); }
 [data-theme="light"] .htp-trigger-btn:hover { border-color: var(--gold); color: var(--gold); }
+[data-theme="light"] .map-guest-badge {
+  background: linear-gradient(135deg, rgba(139, 94, 32, 0.16), rgba(139, 94, 32, 0.05));
+  border-color: rgba(139, 94, 32, 0.35);
+  color: #8B5E20;
+}
+[data-theme="light"] .map-guest-badge .mgb-count { background: rgba(139, 94, 32, 0.16); }
 [data-theme="light"] .how-to-play-panel { background: #FFFFFF; border-color: rgba(139,94,32,0.14); box-shadow: 0 8px 32px rgba(60,35,5,0.12); }
 [data-theme="light"] .htp-close { background: rgba(0,0,0,0.04); border-color: rgba(139,94,32,0.2); color: var(--text2); }
 [data-theme="light"] .htp-close:hover { border-color: var(--gold); color: var(--gold); }
@@ -852,6 +858,44 @@
   border-color: var(--gold);
 }
 
+/* ── Badge Mode Tamu (di sebelah kiri tombol "Cara Bermain") ── */
+.map-guest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.24), rgba(201, 168, 76, 0.08));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  color: #f7b24f;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  cursor: default;
+  animation: guestBadgeIn 0.35s ease;
+}
+
+.map-guest-badge .mgb-icon { font-size: 15px; }
+
+.map-guest-badge .mgb-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(201, 168, 76, 0.28);
+  font-size: 11px;
+  font-weight: 800;
+  /* line-height 1 + padding 1px = 13px, sama dengan tinggi ikon tombol "Cara Bermain"
+     sehingga tinggi kedua pill identik */
+  line-height: 1;
+}
+
+@keyframes guestBadgeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── How To Play dropdown panel ── */
 .how-to-play-panel {
   position: absolute;
@@ -1197,6 +1241,9 @@
   .map-top-right { top: 60px; right: 16px; gap: 6px; }
   .htp-trigger-btn span { display: none; }
   .htp-trigger-btn { padding: 9px 12px; }
+  .map-guest-badge { padding: 9px 12px; gap: 5px; }
+  .map-guest-badge .mgb-icon { font-size: 13px; }
+  .map-guest-badge .mgb-label { display: none; }
   .how-to-play-panel { width: 280px; right: 0; }
   .map-progress-bar { width: 140px; }
   .map-back-btn { top: 16px; right: 16px; padding: 8px 14px; font-size: 12px; }

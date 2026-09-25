@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
-import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
+import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar, FiCompass } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { DIFFICULTY_CONFIG, getDifficultyInfo } from '../../utils/difficulty';
 import MapSVG from './/Map/MapSVG';
@@ -222,6 +222,18 @@ export default function MapPage() {
 
         {/* Top-right controls */}
         <div className="map-top-right">
+          {/* Badge Mode Tamu — tampil di sebelah kiri tombol "Cara Bermain" */}
+          {!user && (
+            <div
+              className="map-guest-badge"
+              title={`Mode Tamu: ${unlockedCount}/${guestLimit} provinsi terbuka. Daftar akun gratis untuk membuka seluruh 38 provinsi dan menyimpan progresmu.`}
+            >
+              <FiCompass className="mgb-icon" />
+              <span className="mgb-label">Mode Tamu</span>
+              <span className="mgb-count">{unlockedCount}/{guestLimit}</span>
+            </div>
+          )}
+
           <div className="htp-wrapper">
             <button
               className="htp-trigger-btn"
