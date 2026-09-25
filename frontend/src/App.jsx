@@ -12,6 +12,7 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import { AuthProvider } from './context/AuthContext';
 import AuthModal from './components/AuthModal';
 import GameHistoryModal from './components/GameHistoryModal';
+import GuestKeyRewardModal from './components/GuestKeyRewardModal';
 import { getUserData, getTheme, resetUserData } from './utils/localStorage';
 
 function AppContent() {
@@ -60,9 +61,10 @@ function AppContent() {
       </Routes>
       {!hideFooter && <Footer />}
 
-      {/* Global Modals for Auth & Game History */}
+      {/* Global Modals for Auth, Game History & Guest Rewards */}
       <AuthModal />
       <GameHistoryModal />
+      <GuestKeyRewardModal />
     </>
   );
 }

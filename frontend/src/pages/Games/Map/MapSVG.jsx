@@ -313,22 +313,22 @@ export default function MapSVG({ onRegionHover, hoveredRegionId, onRegionClick, 
           const containerHeight = 32;
           const padding = 10; // Consistent padding on left/right
           
-          const keyValueStr = typeof keyValue === 'number' ? keyValue.toString() : keyValue;
+          const keyValueStr = typeof keyValue === 'number' ? keyValue.toString() : (keyValue || '0');
           const valueLength = keyValueStr.length;
           // Dynamic font size: larger numbers get smaller font
           const baseFontSize = 14;
           const minFontSize = 10;
-          
+
           // Calculate font size based on value length
-          let fontSize = baseFontSize;
-          if (valueLength > 8) {
+          let fontSize = keyValueStr === '∞' ? 18 : baseFontSize;
+          if (keyValueStr !== '∞' && valueLength > 8) {
             fontSize = Math.max(minFontSize, baseFontSize - (valueLength - 8) * 0.4);
           }
-          
+
           // Calculate container width with padding
           // Estimate: ~0.6em per digit at max font size
-          const estimatedTextWidth = valueLength * (fontSize * 0.6);
-          const containerWidth = estimatedTextWidth + padding * 2;
+          const estimatedTextWidth = keyValueStr === '∞' ? 16 : valueLength * (fontSize * 0.6);
+          const containerWidth = Math.max(34, estimatedTextWidth + padding * 2);
           
           const containerCenterX = containerStartX + containerWidth / 2;
           

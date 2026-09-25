@@ -9,7 +9,7 @@ const STORAGE_KEYS = {
 
 // Default user data
 const DEFAULT_USER_DATA = {
-  keys: 1, // Inisialisasi 1 kunci starter agar tamu dapat membuka provinsi perdana
+  keys: 0, // Inisialisasi 0 kunci di awal
   unlockedRegions: [], // Tidak ada region yang unlocked di awal
   quizScores: {},
   puzzleScores: {},
@@ -34,12 +34,7 @@ export const getUserData = () => {
     const userData = JSON.parse(data);
     // Ensure all required fields exist
     const mergedData = { ...DEFAULT_USER_DATA, ...userData };
-
-    // Jika tamu baru (belum login dan belum ada provinsi terbuka dan kunci masih 0), berikan 1 kunci starter
-    if (!localStorage.getItem('nusaquest_token') && (!mergedData.unlockedRegions || mergedData.unlockedRegions.length === 0) && (mergedData.keys === undefined || mergedData.keys === 0)) {
-      mergedData.keys = 1;
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(mergedData));
-    }
+    mergedData.keys = typeof mergedData.keys === 'number' ? mergedData.keys : 0;
 
     return mergedData;
   } catch (error) {
@@ -108,17 +103,39 @@ export const addKeys = (amount) => {
 };
 
 // Unlock region
-export const unlockRegion = (regionId, cost) => {
+export const unlockRegion = (regionId, cost = 1, isGuest = false) => {
   const userData = getUserData();
-  
-  if (userData.keys >= cost && !userData.unlockedRegions.includes(regionId)) {
-    userData.keys -= cost;
-    userData.unlockedRegions.push(regionId);
+  const unlocked = userData.unlockedRegions || [];
+  if (unlocked.includes(regionId)) return true;
+
+  if (isGuest) {
+    if (unlocked.length >= GUEST_MAX_PROVINCES) {
+      console.log(`❌ [unlockRegion] Guest quota reached (${unlocked.length}/${GUEST_MAX_PROVINCES})`);
+      return false;
+    }
+    userData.unlockedRegions = [...unlocked, regionId];
     return saveUserData(userData);
   }
-  
+
+  if (userData.keys >= cost) {
+    userData.keys -= cost;
+    userData.unlockedRegions = [...unlocked, regionId];
+    return saveUserData(userData);
+  }
+
   console.log(`❌ [unlockRegion] Failed - Insufficient keys or already unlocked`);
   return false;
+};
+
+// Get count of unique completed provinces in guest session
+export const getGuestCompletedProvincesCount = () => {
+  const data = getUserData();
+  const completedProvinces = new Set([
+    ...Object.keys(data.completedGames || {}).filter((k) => (data.completedGames[k] || []).length > 0),
+    ...(data.claimedRewards || []),
+    ...Object.keys(data.quizStats || {}).filter((k) => data.quizStats[k]?.passed),
+  ]);
+  return completedProvinces.size;
 };
 
 // Mark game as completed for a province

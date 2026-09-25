@@ -17,7 +17,7 @@ export default function LockedRegionPopup({
   const { user, openAuthModal } = useAuth();
   const isGuest = !user;
   const isGuestQuotaReached = isGuest && unlockedCount >= GUEST_MAX_PROVINCES;
-  const canUnlock = !isGuestQuotaReached && keyValue >= keyRequired;
+  const canUnlock = isGuest ? !isGuestQuotaReached : keyValue >= keyRequired;
   const { difficulty, label, color, keyReward } = getDifficultyInfo(regionId);
 
   return (
@@ -55,13 +55,19 @@ export default function LockedRegionPopup({
 
               <div className="key-requirement-box">
                 <span className="key-icon"><FiKey /></span>
-                <span className="key-amount">{keyRequired} kunci dibutuhkan</span>
+                <span className="key-amount">
+                  {isGuest ? 'Gratis di Mode Tamu' : `${keyRequired} kunci dibutuhkan`}
+                </span>
               </div>
               <p style={{ fontSize: 12, color: '#888', marginTop: 8, marginBottom: 0 }}>
-                Kunci kamu: <strong style={{ color: canUnlock ? '#40916C' : '#e74c3c' }}>{keyValue}</strong>
-                {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>{keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /></strong>
+                Kunci kamu: <strong style={{ color: canUnlock ? '#40916C' : '#e74c3c' }}>
+                  {isGuest ? '∞ (Unlimited)' : keyValue}
+                </strong>
+                {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>
+                  +{keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} />
+                </strong>
               </p>
-              {!canUnlock && (
+              {!isGuest && !canUnlock && (
                 <p style={{ color: '#e74c3c', marginTop: 6, fontSize: 12 }}>
                   Butuh {keyRequired - keyValue} kunci lagi
                 </p>

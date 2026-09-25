@@ -201,17 +201,18 @@ export default function MapPage() {
   };
 
   const handleUnlockRegion = async (regionId, keyCost) => {
+    const isGuest = !user;
     const currentUnlocked = getUserData().unlockedRegions || [];
-    if (!user && currentUnlocked.length >= GUEST_MAX_PROVINCES) {
+    if (isGuest && currentUnlocked.length >= GUEST_MAX_PROVINCES) {
       openAuthModal('register');
       return;
     }
 
-    const success = unlockRegionLS(regionId, keyCost);
+    const success = unlockRegionLS(regionId, isGuest ? 0 : keyCost, isGuest);
     if (success) {
       const data = getUserData();
-      setKeyValue(data.keys);
-      setUnlockedRegions(data.unlockedRegions);
+      setKeyValue(data.keys ?? 0);
+      setUnlockedRegions(data.unlockedRegions || []);
       const provName = lockedRegionNamePopup;
       setLockedRegionNamePopup(null);
       setLockedRegionIdPopup(null);
@@ -229,8 +230,8 @@ export default function MapPage() {
           });
           if (res?.success && res?.data) {
             const synced = syncFromBackend(res.data);
-            setKeyValue(synced.keys);
-            setUnlockedRegions(synced.unlockedRegions);
+            setKeyValue(synced.keys ?? 0);
+            setUnlockedRegions(synced.unlockedRegions || []);
           }
         } catch (err) {
           console.error('Failed to sync unlock to backend:', err.message);
@@ -367,7 +368,7 @@ export default function MapPage() {
               panX={panX}
               panY={panY}
               unlockedRegions={unlockedRegions}
-              keyValue={keyValue}
+              keyValue={user ? keyValue : '∞'}
             />
           </div>
         </div>
@@ -387,7 +388,7 @@ export default function MapPage() {
           regionId={lockedRegionIdPopup}
           onClose={() => { setLockedRegionNamePopup(null); setIsRegionSelected(false); }}
           onUnlock={() => handleUnlockRegion(lockedRegionIdPopup, lockedRegionKeyCost)}
-          keyValue={keyValue}
+          keyValue={user ? keyValue : '∞'}
           keyRequired={lockedRegionKeyCost}
           unlockedCount={unlockedRegions.length}
         />

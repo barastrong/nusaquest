@@ -1,6 +1,15 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, userApi } from '../services/api';
-import { getDeviceId, getUserData, updateUserData, syncFromBackend, resetUserData, getProvinceQuizProgress } from '../utils/localStorage';
+import {
+  getDeviceId,
+  getUserData,
+  updateUserData,
+  syncFromBackend,
+  resetUserData,
+  getProvinceQuizProgress,
+  getGuestCompletedProvincesCount,
+  saveUserData,
+} from '../utils/localStorage';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +22,8 @@ export function AuthProvider({ children }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('login');
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [guestRewardInfo, setGuestRewardInfo] = useState(null);
+  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
 
   // Sync progress with backend
   const syncProgressWithBackend = useCallback(async () => {
@@ -107,6 +118,9 @@ export function AuthProvider({ children }) {
 
   const register = async ({ username, email, password, displayName }) => {
     const deviceId = getDeviceId();
+    const completedCount = getGuestCompletedProvincesCount();
+    const bonusKeys = completedCount > 0 ? completedCount : 1;
+
     const res = await authApi.register({
       username,
       email,
@@ -119,15 +133,30 @@ export function AuthProvider({ children }) {
       setToken(res.token);
       setUser(res.user);
       setIsAuthModalOpen(false);
+
       const currentData = getUserData();
-      if ((currentData.keys || 0) < 1) {
-        updateUserData({ keys: 1 });
+      currentData.keys = (currentData.keys || 0) + bonusKeys;
+      saveUserData(currentData);
+      setUserProgress({ ...currentData });
+
+      if (completedCount > 0) {
+        setGuestRewardInfo({
+          keysEarned: bonusKeys,
+          completedCount,
+        });
+        setIsRewardModalOpen(true);
       }
+
       await syncProgressWithBackend();
       fetchHistory();
       return res.user;
     }
     throw new Error(res.message || 'Registrasi gagal.');
+  };
+
+  const closeRewardModal = () => {
+    setIsRewardModalOpen(false);
+    setGuestRewardInfo(null);
   };
 
   const logout = () => {
@@ -214,6 +243,9 @@ export function AuthProvider({ children }) {
     isHistoryModalOpen,
     openHistoryModal,
     closeHistoryModal,
+    guestRewardInfo,
+    isRewardModalOpen,
+    closeRewardModal,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
