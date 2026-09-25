@@ -699,6 +699,13 @@
   background: #EDE5D6;
 }
 
+[data-theme="light"] .status-completed { background: rgba(45,155,94,0.12) !important; color: #1a6b3f !important; border-color: rgba(45,155,94,0.35) !important; }
+[data-theme="light"] .status-in-progress { background: rgba(201,168,76,0.14) !important; color: #8a6d20 !important; border-color: rgba(201,168,76,0.38) !important; }
+[data-theme="light"] .status-not-started { background: rgba(120,120,120,0.08) !important; color: #6b7280 !important; border-color: rgba(120,120,120,0.25) !important; }
+[data-theme="light"] .ppt-stat-label { color: var(--text2); }
+[data-theme="light"] .ppt-stat-val { color: var(--text); }
+[data-theme="light"] .ppt-title { color: var(--text); }
+
 @media (max-width: 768px) {
   .map-page {
     height: 100vh;
