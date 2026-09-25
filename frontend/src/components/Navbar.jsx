@@ -213,25 +213,26 @@ export default function Navbar() {
           )}
         </div>
 
-        <button
-          className="theme-toggle"
-          onClick={toggleTheme}
-          title={theme === 'dark' ? 'Mode terang' : 'Mode gelap'}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? '🌙' : '☀️'}
-        </button>
+        <div className="nav-mobile-right">
+          <button
+            className="theme-toggle theme-toggle-desktop"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Mode terang' : 'Mode gelap'}
+          >
+            {theme === 'dark' ? '🌙' : '☀️'}
+          </button>
 
-        <button
-          className={`nav-hamburger ${isMenuOpen ? 'active' : ''}`}
-          onClick={toggleMenu}
-          aria-label="Toggle menu"
-          aria-expanded={isMenuOpen}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
+          <button
+            className={`nav-hamburger ${isMenuOpen ? 'active' : ''}`}
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+        </div>
       </nav>
     </div>
   );

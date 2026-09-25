@@ -87,7 +87,7 @@ SECTION COMMON
   background: var(--gold); color: #1A1408;
   padding: 14px 32px; border-radius: 8px;
   font-weight: 700; font-size: 14px;
-  border: none; cursor: pointer;
+  border: 1.5px solid var(--gold); cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
   transition: transform .2s, box-shadow .2s;
   box-shadow: 0 4px 24px rgba(201,168,76,0.3);
@@ -95,8 +95,8 @@ SECTION COMMON
 .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(201,168,76,0.4); }
 .btn-outline {
   background: transparent; color: var(--text);
-  padding: 13px 28px; border-radius: 8px;
-  font-weight: 600; font-size: 14px;
+  padding: 14px 32px; border-radius: 8px;
+  font-weight: 700; font-size: 14px;
   border: 1.5px solid var(--border);
   cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
   transition: all .2s;
