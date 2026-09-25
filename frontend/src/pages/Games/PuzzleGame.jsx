@@ -4,7 +4,17 @@ import { FiRefreshCw, FiEye, FiArrowLeft, FiAward, FiCheckCircle, FiKey, FiAlert
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../utils/image';
 import { getDifficultyInfo } from '../../utils/difficulty';
+import successSfx from '../../sounds/success.mp3';
+import failedSfx from '../../sounds/failed.mp3';
 import '../../styles/puzzle.css';
+
+// Efek suara hasil cek susunan — sama seperti QuizGame
+const sfx = { success: new Audio(successSfx), failed: new Audio(failedSfx) };
+const playSfx = (ok) => {
+  const a = ok ? sfx.success : sfx.failed;
+  a.currentTime = 0;
+  a.play().catch(() => {});
+};
 
 const GRID = 3; // 3×3 = 9 kepingan — gambar lebih jelas, tidak terpotong
 
@@ -253,6 +263,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
     const correct = piecesRef.current.every(p =>
       Math.abs(p.xPos - p.correctX) < 4 && Math.abs(p.yPos - p.correctY) < 4
     );
+    playSfx(correct);
     setCheckResult(correct ? 'correct' : 'wrong');
   }
 
