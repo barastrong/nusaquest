@@ -197,6 +197,19 @@ export default function AuthModal() {
             </p>
           </form>
         )}
+
+        <div className="auth-guest-section">
+          <div className="auth-divider">
+            <span>atau</span>
+          </div>
+          <button
+            type="button"
+            className="auth-guest-btn"
+            onClick={closeAuthModal}
+          >
+            Lanjut Jelajah sebagai Tamu (Maks. 5 Provinsi)
+          </button>
+        </div>
       </div>
     </div>
   );

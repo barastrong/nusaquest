@@ -1,5 +1,7 @@
 // Utility untuk mengelola localStorage user data
 
+export const GUEST_MAX_PROVINCES = 5;
+
 const STORAGE_KEYS = {
   USER_DATA: 'nusaquest_user_data',
   THEME: 'nusaquest_theme',
@@ -7,7 +9,7 @@ const STORAGE_KEYS = {
 
 // Default user data
 const DEFAULT_USER_DATA = {
-  keys: 0, // Default 0 ketika belum login
+  keys: 1, // Inisialisasi 1 kunci starter agar tamu dapat membuka provinsi perdana
   unlockedRegions: [], // Tidak ada region yang unlocked di awal
   quizScores: {},
   puzzleScores: {},
@@ -32,6 +34,13 @@ export const getUserData = () => {
     const userData = JSON.parse(data);
     // Ensure all required fields exist
     const mergedData = { ...DEFAULT_USER_DATA, ...userData };
+
+    // Jika tamu baru (belum login dan belum ada provinsi terbuka dan kunci masih 0), berikan 1 kunci starter
+    if (!localStorage.getItem('nusaquest_token') && (!mergedData.unlockedRegions || mergedData.unlockedRegions.length === 0) && (mergedData.keys === undefined || mergedData.keys === 0)) {
+      mergedData.keys = 1;
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(mergedData));
+    }
+
     return mergedData;
   } catch (error) {
     console.error('❌ [getUserData] Error reading user data:', error);

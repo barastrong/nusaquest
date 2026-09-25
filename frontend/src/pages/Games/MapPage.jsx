@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
-import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
-import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend } from '../../utils/localStorage';
+import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar, FiCompass, FiUserPlus } from 'react-icons/fi';
+import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend, GUEST_MAX_PROVINCES } from '../../utils/localStorage';
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import MapSVG from './/Map/MapSVG';
@@ -10,6 +10,7 @@ import RegionPopup from './Map/RegionPopup';
 import LockedRegionPopup from './Map/LockedRegionPopup';
 import UnlockAnimation from './Map/UnlockAnimation';
 import '../../styles/map.css';
+import '../../styles/guestModal.css';
 
 export const DIFFICULTY_CONFIG = {
   mudah:  { unlockCost: 1, keyReward: 2, label: 'Mudah',  color: '#40916C' },
@@ -66,17 +67,12 @@ export default function MapPage() {
 
   // Load from localStorage and sync latest from backend on mount or when user changes
   useEffect(() => {
-    if (!user) {
-      setUnlockedRegions([]);
-      setKeyValue(0);
-      return;
-    }
     const data = getUserData();
     setUnlockedRegions(data.unlockedRegions || []);
-    setKeyValue(data.keys || 0);
+    setKeyValue(data.keys ?? 0);
 
-    // Sync latest from backend to ensure cross-device consistency
-    if (syncProgressWithBackend) {
+    // Sync latest from backend to ensure cross-device consistency if authenticated
+    if (user && syncProgressWithBackend) {
       syncProgressWithBackend().then((synced) => {
         if (synced) {
           setUnlockedRegions(synced.unlockedRegions || []);
@@ -108,11 +104,6 @@ export default function MapPage() {
   };
 
   const handleRegionClick = (regionId, regionName, centerX, centerY) => {
-    if (!user) {
-      openAuthModal('login');
-      return;
-    }
-
     // Reset locked popup if open
     setLockedRegionNamePopup(null);
     setLockedRegionIdPopup(null);
@@ -131,11 +122,6 @@ export default function MapPage() {
   };
 
   const handleLockedRegionClick = (regionId, regionName) => {
-    if (!user) {
-      openAuthModal('login');
-      return;
-    }
-
     const { unlockCost } = getDifficultyInfo(regionId);
     setSelectedRegionName(null);
     setSelectedRegionId(null);
@@ -146,8 +132,9 @@ export default function MapPage() {
   };
 
   const handleUnlockRegion = async (regionId, keyCost) => {
-    if (!user) {
-      openAuthModal('login');
+    const currentUnlocked = getUserData().unlockedRegions || [];
+    if (!user && currentUnlocked.length >= GUEST_MAX_PROVINCES) {
+      openAuthModal('register');
       return;
     }
 
@@ -163,20 +150,22 @@ export default function MapPage() {
       const { label, color } = getDifficultyInfo(regionId);
       setUnlockAnim({ name: provName, difficulty: label, color });
 
-      // Persist unlock to Supabase backend
-      try {
-        const res = await userApi.unlockProvince({
-          deviceId: getDeviceId(),
-          provinceSlug: regionId,
-          keyCost,
-        });
-        if (res?.success && res?.data) {
-          const synced = syncFromBackend(res.data);
-          setKeyValue(synced.keys);
-          setUnlockedRegions(synced.unlockedRegions);
+      // Persist unlock to Supabase backend if authenticated
+      if (user) {
+        try {
+          const res = await userApi.unlockProvince({
+            deviceId: getDeviceId(),
+            provinceSlug: regionId,
+            keyCost,
+          });
+          if (res?.success && res?.data) {
+            const synced = syncFromBackend(res.data);
+            setKeyValue(synced.keys);
+            setUnlockedRegions(synced.unlockedRegions);
+          }
+        } catch (err) {
+          console.error('Failed to sync unlock to backend:', err.message);
         }
-      } catch (err) {
-        console.error('Failed to sync unlock to backend:', err.message);
       }
     }
   };
@@ -204,6 +193,27 @@ export default function MapPage() {
             <span className="map-progress-text">{unlockedCount}/{TOTAL_PROVINCES} Provinsi</span>
           </div>
         </div>
+
+        {!user && (
+          <div className="guest-mode-banner">
+            <div className="gmb-info">
+              <FiCompass className="gmb-icon" />
+              <div>
+                <span className="gmb-badge">Mode Tamu</span>
+                <span>
+                  Kamu telah membuka <strong>{unlockedCount}/{GUEST_MAX_PROVINCES}</strong> provinsi kuota tamu. Buat akun gratis untuk membuka semua 38 provinsi!
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="gmb-register-btn"
+              onClick={() => openAuthModal('register')}
+            >
+              <FiUserPlus /> Buat Akun Gratis
+            </button>
+          </div>
+        )}
 
         {isFullMapComplete && (
           <div className="fullmap-complete-banner">
@@ -236,7 +246,7 @@ export default function MapPage() {
 
                 <div className="htp-notice">
                   <span className="htp-notice-icon"><FiGift /></span>
-                  <span>{user ? 'Kumpulkan kunci dengan menyelesaikan tantangan untuk membuka provinsi!' : 'Silakan login terlebih dahulu untuk mulai bermain dan membuka provinsi!'}</span>
+                  <span>{user ? 'Kumpulkan kunci dengan menyelesaikan tantangan untuk membuka provinsi!' : 'Mode Tamu: Kumpulkan kunci dan buka hingga 5 provinsi secara gratis!'}</span>
                 </div>
 
                 <div className="htp-flow">
@@ -331,6 +341,7 @@ export default function MapPage() {
           onUnlock={() => handleUnlockRegion(lockedRegionIdPopup, lockedRegionKeyCost)}
           keyValue={keyValue}
           keyRequired={lockedRegionKeyCost}
+          unlockedCount={unlockedRegions.length}
         />
       )}
 

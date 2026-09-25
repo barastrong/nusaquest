@@ -1,0 +1,353 @@
+/* Styles for Guest Mode Warning Modal & Banners */
+
+.gwm-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(5, 12, 9, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: gwmFadeIn 0.25s ease-out;
+}
+
+@keyframes gwmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gwm-content {
+  background: linear-gradient(165deg, #0d2119 0%, #091712 100%);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  padding: 32px 28px 28px;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(201, 168, 76, 0.12);
+  color: #f3f4f6;
+  text-align: center;
+  animation: gwmSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gwmSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gwm-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gwm-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.gwm-icon-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.gwm-compass-glow {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.25) 0%, rgba(201, 168, 76, 0.05) 70%);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 24px rgba(201, 168, 76, 0.25);
+}
+
+.gwm-main-icon {
+  font-size: 34px;
+  color: #f7b24f;
+  filter: drop-shadow(0 2px 6px rgba(247, 178, 79, 0.4));
+}
+
+.gwm-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #f7b24f;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.gwm-subtitle {
+  font-size: 0.92rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin-bottom: 22px;
+}
+
+.gwm-points {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.gwm-point-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(18, 43, 33, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 12px 14px;
+  border-radius: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.gwm-point-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 168, 76, 0.25);
+}
+
+.gwm-point-card.highlight {
+  background: rgba(20, 52, 68, 0.45);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.gwm-point-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gwm-point-icon-box.gold {
+  background: rgba(247, 178, 79, 0.15);
+  color: #f7b24f;
+}
+
+.gwm-point-icon-box.emerald {
+  background: rgba(64, 145, 108, 0.2);
+  color: #6fcf97;
+}
+
+.gwm-point-icon-box.blue {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+}
+
+.gwm-point-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gwm-point-head {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.gwm-point-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.gwm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gwm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.gwm-btn-proceed {
+  background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+  border: 1px solid rgba(111, 207, 151, 0.4);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(27, 67, 50, 0.4);
+}
+
+.gwm-btn-proceed:hover {
+  background: linear-gradient(135deg, #378362 0%, #22543e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(27, 67, 50, 0.55);
+}
+
+.gwm-btn-register {
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  color: #f7b24f;
+}
+
+.gwm-btn-register:hover {
+  background: rgba(201, 168, 76, 0.22);
+  color: #ffe6a7;
+  transform: translateY(-1px);
+}
+
+/* Guest Mode Banners (Map & Games Pages) */
+.guest-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(90deg, rgba(201, 168, 76, 0.12) 0%, rgba(45, 106, 79, 0.2) 100%);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 14px;
+  padding: 12px 18px;
+  margin: 16px auto;
+  max-width: 900px;
+  width: calc(100% - 32px);
+  color: #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: gwmFadeIn 0.3s ease-out;
+}
+
+.gmb-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.gmb-icon {
+  font-size: 20px;
+  color: #f7b24f;
+  flex-shrink: 0;
+}
+
+.gmb-badge {
+  display: inline-block;
+  background: rgba(201, 168, 76, 0.2);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  color: #f7b24f;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.gmb-register-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #c9a84c 0%, #a6842e 100%);
+  color: #0c1914;
+  border: none;
+  border-radius: 9px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.3);
+}
+
+.gmb-register-btn:hover {
+  background: linear-gradient(135deg, #dab75a 0%, #b89334 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.45);
+}
+
+/* Locked Region Quota Limit State */
+.lrp-quota-limit-box {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 14px 0;
+  text-align: left;
+}
+
+.lrp-quota-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f87171;
+  margin-bottom: 6px;
+}
+
+.lrp-quota-desc {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.lrp-guest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(201, 168, 76, 0.15);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  color: #f7b24f;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .gwm-content {
+    padding: 24px 18px 20px;
+  }
+  .guest-mode-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 14px;
+  }
+  .gmb-register-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

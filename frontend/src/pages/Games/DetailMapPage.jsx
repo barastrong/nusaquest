@@ -8,6 +8,7 @@ import { FiKey, FiCheckCircle, FiLock, FiClock, FiRotateCw, FiAward } from 'reac
 import { claimProvinceReward, hasClaimedReward, canClaimReward, getUserData, getDeviceId, syncFromBackend, getProvinceQuizProgress } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../Games/MapPage';
+import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/detailmap.css';
 
 export default function DetailMapPage() {
@@ -19,6 +20,7 @@ export default function DetailMapPage() {
   const [canClaim, setCanClaim] = useState(false);
   const [showClaimAnim, setShowClaimAnim] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isGuestWarningOpen, setIsGuestWarningOpen] = useState(false);
 
   const quizProgress = getProvinceProgress
     ? getProvinceProgress(name, 'quiz')
@@ -29,18 +31,12 @@ export default function DetailMapPage() {
     let isMounted = true;
 
     async function loadData() {
-      // Tunggu verifikasi token / session selesai dulu sebelum cek auth
+      // Tunggu verifikasi token / session selesai dulu sebelum cek data
       if (authLoading) return;
 
-      if (!user) {
-        openAuthModal('login');
-        navigate('/map-games');
-        return;
-      }
-
-      // 1. Check unlock status
+      // 1. Check unlock status (mendukung Mode Tamu via localStorage)
       const userData = getUserData();
-      const isUnlocked = userData.unlockedRegions.includes(name);
+      const isUnlocked = userData.unlockedRegions?.includes(name);
 
       if (!isUnlocked) {
         navigate('/map-games');
@@ -87,10 +83,6 @@ export default function DetailMapPage() {
   }, [loading]);
 
   const handleClaim = async () => {
-    if (!user) {
-      openAuthModal('login');
-      return;
-    }
     const { keyReward } = getDifficultyInfo(name);
     const success = claimProvinceReward(name, keyReward);
     if (success) {
@@ -99,20 +91,30 @@ export default function DetailMapPage() {
       setShowClaimAnim(true);
       setTimeout(() => setShowClaimAnim(false), 3000);
 
-      // Persist claim to backend Supabase
-      try {
-        const res = await userApi.claimReward({
-          deviceId: getDeviceId(),
-          provinceSlug: name,
-          keyReward,
-        });
-        if (res?.success && res?.data) {
-          syncFromBackend(res.data);
+      // Persist claim to backend Supabase if authenticated
+      if (user) {
+        try {
+          const res = await userApi.claimReward({
+            deviceId: getDeviceId(),
+            provinceSlug: name,
+            keyReward,
+          });
+          if (res?.success && res?.data) {
+            syncFromBackend(res.data);
+          }
+        } catch (err) {
+          console.error('Failed to sync claim to server:', err.message);
         }
-      } catch (err) {
-        console.error('Failed to sync claim to server:', err.message);
       }
     }
+  };
+
+  const handleStartGame = () => {
+    if (!user) {
+      setIsGuestWarningOpen(true);
+      return;
+    }
+    navigate(`/games/${name}`);
   };
 
   if (loading) {
@@ -344,13 +346,7 @@ export default function DetailMapPage() {
             <div className="cta-btn-row">
               <button
                 className="btn-play-game"
-                onClick={() => {
-                  if (!user) {
-                    openAuthModal('login');
-                    return;
-                  }
-                  navigate(`/games/${name}`);
-                }}
+                onClick={handleStartGame}
               >
                 Mulai Mini Game
               </button>
@@ -374,6 +370,21 @@ export default function DetailMapPage() {
           </div>
         </div>
       </section>
+
+      {/* Guest Mode Warning Modal */}
+      <GuestWarningModal
+        isOpen={isGuestWarningOpen}
+        onClose={() => setIsGuestWarningOpen(false)}
+        onProceed={() => {
+          setIsGuestWarningOpen(false);
+          navigate(`/games/${name}`);
+        }}
+        onRegister={() => {
+          setIsGuestWarningOpen(false);
+          openAuthModal('register');
+        }}
+        provinceName={province?.name}
+      />
     </div>
   );
 }

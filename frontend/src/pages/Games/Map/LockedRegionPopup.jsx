@@ -1,11 +1,23 @@
 import '../../../styles/map.css';
-import { FiKey, FiLock } from "react-icons/fi";
+import '../../../styles/guestModal.css';
+import { FiKey, FiLock, FiAlertCircle, FiCompass, FiUserPlus } from "react-icons/fi";
 import { getDifficultyInfo } from '../MapPage';
 import { useAuth } from '../../../context/AuthContext';
+import { GUEST_MAX_PROVINCES } from '../../../utils/localStorage';
 
-export default function LockedRegionPopup({ regionName, regionId, onClose, onUnlock, keyValue = 0, keyRequired = 1 }) {
+export default function LockedRegionPopup({
+  regionName,
+  regionId,
+  onClose,
+  onUnlock,
+  keyValue = 0,
+  keyRequired = 1,
+  unlockedCount = 0,
+}) {
   const { user, openAuthModal } = useAuth();
-  const canUnlock = Boolean(user && keyValue >= keyRequired);
+  const isGuest = !user;
+  const isGuestQuotaReached = isGuest && unlockedCount >= GUEST_MAX_PROVINCES;
+  const canUnlock = !isGuestQuotaReached && keyValue >= keyRequired;
   const { difficulty, label, color, keyReward } = getDifficultyInfo(regionId);
 
   return (
@@ -24,47 +36,69 @@ export default function LockedRegionPopup({ regionName, regionId, onClose, onUnl
             Level: {label}
           </span>
 
-          <div className="popup-section">
-            <div className="key-requirement-box">
-              <span className="key-icon"><FiKey /></span>
-              <span className="key-amount">{keyRequired} kunci dibutuhkan</span>
+          {isGuestQuotaReached ? (
+            <div className="lrp-quota-limit-box">
+              <div className="lrp-quota-head">
+                <FiAlertCircle size={18} /> Batas Mode Tamu Tercapai ({GUEST_MAX_PROVINCES}/{GUEST_MAX_PROVINCES})
+              </div>
+              <div className="lrp-quota-desc">
+                Hebat! Kamu sudah membuka kuota maksimal {GUEST_MAX_PROVINCES} provinsi di Mode Tamu. Daftarkan akun gratis sekarang untuk membuka ke-38 provinsi Indonesia dan simpan pencapaianmu selamanya tanpa hilang!
+              </div>
             </div>
-            <p style={{ fontSize: 12, color: '#888', marginTop: 8, marginBottom: 0 }}>
-              Kunci kamu: <strong style={{ color: canUnlock ? '#40916C' : '#e74c3c' }}>{user ? keyValue : 0}</strong>
-              {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>{keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /></strong>
-            </p>
-            {user ? (
-              !canUnlock && (
+          ) : (
+            <div className="popup-section">
+              {isGuest && (
+                <div className="lrp-guest-badge">
+                  <FiCompass size={13} /> Mode Tamu: {unlockedCount}/{GUEST_MAX_PROVINCES} Provinsi Terbuka
+                </div>
+              )}
+
+              <div className="key-requirement-box">
+                <span className="key-icon"><FiKey /></span>
+                <span className="key-amount">{keyRequired} kunci dibutuhkan</span>
+              </div>
+              <p style={{ fontSize: 12, color: '#888', marginTop: 8, marginBottom: 0 }}>
+                Kunci kamu: <strong style={{ color: canUnlock ? '#40916C' : '#e74c3c' }}>{keyValue}</strong>
+                {' · '}Reward setelah dibuka: <strong style={{ color: '#C9A84C' }}>{keyReward} <FiKey style={{ verticalAlign: 'middle', fontSize: 11 }} /></strong>
+              </p>
+              {!canUnlock && (
                 <p style={{ color: '#e74c3c', marginTop: 6, fontSize: 12 }}>
                   Butuh {keyRequired - keyValue} kunci lagi
                 </p>
-              )
-            ) : (
-              <p style={{ color: '#e74c3c', marginTop: 6, fontSize: 12 }}>
-                Silakan login untuk membuka provinsi
-              </p>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-            <button className="popup-btn-secondary" onClick={onClose} style={{ flex: 1 }}>Batal</button>
-            <button
-              className="popup-btn-primary"
-              onClick={() => {
-                if (!user) {
-                  onClose();
-                  openAuthModal('login');
-                  return;
-                }
-                if (canUnlock) {
-                  onUnlock();
-                  onClose();
-                }
-              }}
-              style={{ flex: 1, opacity: !user || canUnlock ? 1 : 0.5, cursor: !user || canUnlock ? 'pointer' : 'not-allowed' }}
-            >
-              {user ? (canUnlock ? 'Buka Provinsi' : 'Kunci Kurang') : 'Masuk Akun'}
+            <button className="popup-btn-secondary" onClick={onClose} style={{ flex: 1 }}>
+              {isGuestQuotaReached ? 'Nanti Saja' : 'Batal'}
             </button>
+            {isGuestQuotaReached ? (
+              <button
+                className="popup-btn-primary"
+                onClick={() => {
+                  onClose();
+                  openAuthModal('register');
+                }}
+                style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                <FiUserPlus size={14} /> Buat Akun Gratis
+              </button>
+            ) : (
+              <button
+                className="popup-btn-primary"
+                onClick={() => {
+                  if (canUnlock) {
+                    onUnlock();
+                    onClose();
+                  }
+                }}
+                style={{ flex: 1, opacity: canUnlock ? 1 : 0.5, cursor: canUnlock ? 'pointer' : 'not-allowed' }}
+                disabled={!canUnlock}
+              >
+                {canUnlock ? (isGuest ? 'Buka Provinsi' : 'Buka Provinsi') : 'Kunci Kurang'}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
+import { FiCheckCircle, FiClock, FiRotateCw, FiAward, FiCompass, FiUserPlus } from 'react-icons/fi';
 import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
-import { getUserData } from '../../utils/localStorage';
+import { getUserData, GUEST_MAX_PROVINCES } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
+import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/games.css';
+import '../../styles/guestModal.css';
 
 export default function GamesPage() {
   const { slug } = useParams();
@@ -14,6 +16,8 @@ export default function GamesPage() {
   const { user, loading: authLoading, openAuthModal, getProvinceProgress, userProgress } = useAuth();
   const [activeGame, setActiveGame] = useState(null);
   const [province, setProvince] = useState(null);
+  const [isGuestWarningOpen, setIsGuestWarningOpen] = useState(false);
+  const [pendingGame, setPendingGame] = useState(null);
 
   const quizProgress = getProvinceProgress ? getProvinceProgress(slug, 'quiz') : { isCompleted: false, attempts: 0, highScore: 0, hasAttempted: false };
   const puzzleProgress = getProvinceProgress ? getProvinceProgress(slug, 'puzzle') : { isCompleted: false, attempts: 0, highScore: 0, hasAttempted: false };
@@ -21,21 +25,15 @@ export default function GamesPage() {
   // Scroll to top on mount
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
 
-  // Check auth and unlock status, then fetch province data
+  // Check unlock status, then fetch province data (supports Guest Mode)
   useEffect(() => {
-    // Tunggu verifikasi token / session selesai dulu sebelum cek auth
+    // Tunggu verifikasi token / session selesai dulu sebelum cek data
     if (authLoading) return;
-
-    if (!user) {
-      openAuthModal('login');
-      navigate('/map-games');
-      return;
-    }
 
     if (!slug) return;
 
     const userData = getUserData();
-    const isUnlocked = userData.unlockedRegions.includes(slug);
+    const isUnlocked = userData.unlockedRegions?.includes(slug);
     if (!isUnlocked) {
       navigate('/map-games');
       return;
@@ -81,6 +79,15 @@ export default function GamesPage() {
     }
   };
 
+  const handleLaunchGame = (gameType) => {
+    if (!user) {
+      setPendingGame(gameType);
+      setIsGuestWarningOpen(true);
+      return;
+    }
+    setActiveGame(gameType);
+  };
+
   return (
     <div className="games-page">
       {!activeGame && (
@@ -105,6 +112,27 @@ export default function GamesPage() {
               <span className="games-province-name">{province.name}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {!activeGame && !user && (
+        <div className="guest-mode-banner">
+          <div className="gmb-info">
+            <FiCompass className="gmb-icon" />
+            <div>
+              <span className="gmb-badge">Mode Tamu</span>
+              <span>
+                Sesi bermain dalam Mode Tamu (kuota maksimal <strong>{GUEST_MAX_PROVINCES} provinsi</strong>). Buat akun gratis sekarang agar progres dan pencapaianmu tersimpan permanen selamanya!
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="gmb-register-btn"
+            onClick={() => openAuthModal('register')}
+          >
+            <FiUserPlus /> Buat Akun Gratis
+          </button>
         </div>
       )}
 
@@ -174,13 +202,7 @@ export default function GamesPage() {
                 {province && <span className="gsc-pill">{province.name}</span>}
                 <span className="gsc-pill">Skor Akhir</span>
               </div>
-              <button className="gsc-cta" onClick={() => {
-                if (!user) {
-                  openAuthModal('login');
-                  return;
-                }
-                setActiveGame('quiz');
-              }}>
+              <button className="gsc-cta" onClick={() => handleLaunchGame('quiz')}>
                 {quizProgress.isCompleted ? 'Mainkan Lagi' : quizProgress.hasAttempted ? 'Lanjutkan Percobaan' : 'Mulai Quiz'}
               </button>
             </div>
@@ -249,13 +271,7 @@ export default function GamesPage() {
                 {province && <span className="gsc-pill">{province.name}</span>}
                 <span className="gsc-pill">Hitung Langkah</span>
               </div>
-              <button className="gsc-cta" onClick={() => {
-                if (!user) {
-                  openAuthModal('login');
-                  return;
-                }
-                setActiveGame('puzzle');
-              }}>
+              <button className="gsc-cta" onClick={() => handleLaunchGame('puzzle')}>
                 {puzzleProgress.isCompleted ? 'Mainkan Lagi' : puzzleProgress.hasAttempted ? 'Lanjutkan Percobaan' : 'Mulai Puzzle'}
               </button>
             </div>
@@ -277,6 +293,28 @@ export default function GamesPage() {
           province={province}
         />
       )}
+
+      {/* Guest Mode Warning Modal */}
+      <GuestWarningModal
+        isOpen={isGuestWarningOpen}
+        onClose={() => {
+          setIsGuestWarningOpen(false);
+          setPendingGame(null);
+        }}
+        onProceed={() => {
+          setIsGuestWarningOpen(false);
+          if (pendingGame) {
+            setActiveGame(pendingGame);
+            setPendingGame(null);
+          }
+        }}
+        onRegister={() => {
+          setIsGuestWarningOpen(false);
+          setPendingGame(null);
+          openAuthModal('register');
+        }}
+        provinceName={province?.name}
+      />
     </div>
   );
 }
