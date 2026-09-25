@@ -35,15 +35,14 @@ function getTransporter() {
  */
 export async function sendOtpEmail(toEmail, otpCode, username = 'Petualang') {
   const from = process.env.EMAIL_FROM || '"NusaQuest" <no-reply@nusaquest.web.id>';
-  const subject = `Kode Verifikasi Akun NusaQuest: ${otpCode}`;
+  const subject = `${otpCode} adalah kode verifikasi NusaQuest kamu`;
 
   // Fallback simulator jika SMTP belum diatur (khusus lokal/dev)
   if (!isSmtpConfigured()) {
     console.log('\n============================================================');
-    console.log('[NusaQuest Auth] SIMULASI EMAIL OTP (SMTP Belum Diatur)');
-    console.log(`Tujuan  : ${toEmail} (${username})`);
+    console.log('[NusaQuest Auth] SIMULASI EMAIL OTP');
+    console.log(`Tujuan  : ${toEmail}`);
     console.log(`Kode OTP: ${otpCode}`);
-    console.log('Masa Berlaku: 10 Menit');
     console.log('============================================================\n');
     return { success: true, simulated: true };
   }
@@ -56,49 +55,39 @@ export async function sendOtpEmail(toEmail, otpCode, username = 'Petualang') {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Kode Verifikasi NusaQuest</title>
       <style>
-        body { margin: 0; padding: 0; background-color: #08120e; font-family: 'Segoe UI', Arial, sans-serif; color: #e5e7eb; }
-        .wrapper { max-width: 540px; margin: 30px auto; background-color: #0c1a14; border-radius: 16px; border: 1px solid rgba(201,168,76,0.3); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .header { background: linear-gradient(135deg, #10261e, #1a4a30); padding: 32px 24px; text-align: center; border-bottom: 2px solid #c9a84c; }
-        .logo-title { margin: 0; font-size: 26px; font-weight: 800; color: #f7b24f; letter-spacing: 1px; }
-        .logo-sub { margin: 6px 0 0 0; font-size: 13px; color: #a7f3d0; text-transform: uppercase; letter-spacing: 2px; }
-        .content { padding: 32px 28px; text-align: center; }
-        .greeting { font-size: 18px; font-weight: 600; color: #ffffff; margin-bottom: 12px; }
-        .instruction { font-size: 14px; line-height: 1.6; color: #9ca3af; margin-bottom: 28px; }
-        .otp-container { background: #12241c; border: 2px dashed #c9a84c; border-radius: 12px; padding: 20px; margin: 0 auto 28px auto; max-width: 280px; }
-        .otp-code { font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #f7b24f; margin: 0; }
-        .expiry-note { font-size: 13px; color: #fbbf24; margin-top: 10px; font-weight: 500; }
-        .warning { font-size: 12px; color: #6b7280; line-height: 1.5; border-top: 1px solid #1a3025; padding-top: 20px; }
-        .footer { background-color: #08120e; padding: 16px; text-align: center; font-size: 11px; color: #4b5563; }
+        body { margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #18181b; }
+        .wrapper { max-width: 480px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e4e4e7; padding: 36px 32px; box-sizing: border-box; }
+        .brand { font-size: 20px; font-weight: 700; color: #09090b; margin-bottom: 24px; letter-spacing: -0.02em; }
+        .brand span { color: #d97706; }
+        .title { font-size: 16px; font-weight: 600; color: #18181b; margin: 0 0 12px 0; }
+        .text { font-size: 14px; line-height: 1.6; color: #52525b; margin: 0 0 24px 0; }
+        .otp-box { background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 18px; text-align: center; margin: 0 0 24px 0; }
+        .otp-code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #09090b; margin: 0; }
+        .meta-text { font-size: 13px; color: #71717a; line-height: 1.5; margin: 0 0 8px 0; }
+        .footer { border-top: 1px solid #f4f4f5; margin-top: 28px; padding-top: 20px; font-size: 12px; color: #a1a1aa; }
       </style>
     </head>
     <body>
       <div class="wrapper">
-        <div class="header">
-          <h1 class="logo-title">NusaQuest</h1>
-          <p class="logo-sub">Jelajahi & Belajar Budaya Nusantara</p>
+        <div class="brand">Nusa<span>Quest</span></div>
+        <p class="title">Verifikasi email kamu</p>
+        <p class="text">
+          Gunakan kode di bawah ini untuk memverifikasi pendaftaran akun NusaQuest kamu:
+        </p>
+        <div class="otp-box">
+          <div class="otp-code">${otpCode}</div>
         </div>
-        <div class="content">
-          <div class="greeting">Halo, ${username}!</div>
-          <p class="instruction">
-            Terima kasih telah mendaftar di NusaQuest. Masukkan kode verifikasi 6-digit berikut pada jendela pendaftaran untuk mengaktifkan akunmu:
-          </p>
-          <div class="otp-container">
-            <div class="otp-code">${otpCode}</div>
-            <div class="expiry-note">Berlaku selama 10 menit</div>
-          </div>
-          <div class="warning">
-            Jangan berikan kode ini kepada siapa pun. Jika kamu tidak merasa mendaftar di NusaQuest, silakan abaikan email ini dengan aman.
-          </div>
-        </div>
+        <p class="meta-text">Kode ini berlaku selama 10 menit. Jangan bagikan kode ini kepada siapa pun.</p>
+        <p class="meta-text">Jika kamu tidak merasa mendaftar di NusaQuest, abaikan email ini.</p>
         <div class="footer">
-          &copy; 2026 NusaQuest Nusantara. Hak cipta dilindungi undang-undang.
+          NusaQuest &bull; Platform Pembelajaran Budaya Nusantara
         </div>
       </div>
     </body>
     </html>
   `;
 
-  const textContent = `Halo ${username},\n\nKode verifikasi akun NusaQuest kamu adalah: ${otpCode}\nKode ini berlaku selama 10 menit.\nJangan berikan kode ini kepada siapa pun.\n\nSalam,\nTim NusaQuest`;
+  const textContent = `Kode verifikasi NusaQuest kamu: ${otpCode}\n\nKode berlaku selama 10 menit. Jangan bagikan kode ini kepada siapa pun.\n\nJika kamu tidak merasa mendaftar, abaikan email ini.`;
 
   const transporter = getTransporter();
   const info = await transporter.sendMail({
