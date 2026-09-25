@@ -20,6 +20,7 @@ export default function AuthModal() {
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regPasswordConfirm, setRegPasswordConfirm] = useState('');
 
   // OTP flow states
   const [regStep, setRegStep] = useState('form'); // 'form' | 'otp'
@@ -66,6 +67,7 @@ export default function AuthModal() {
     setRegUsername('');
     setRegEmail('');
     setRegPassword('');
+    setRegPasswordConfirm('');
     setRegStep('form');
     setOtpDigits(['', '', '', '', '', '']);
     setResendCountdown(0);
@@ -104,6 +106,10 @@ export default function AuthModal() {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+    if (regPassword !== regPasswordConfirm) {
+      setError('Password tidak cocok. Silakan coba lagi.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await requestRegister({
@@ -356,6 +362,23 @@ export default function AuthModal() {
                 onChange={(e) => setRegPassword(e.target.value)}
                 autoComplete="new-password"
               />
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="reg-password-confirm">Konfirmasi Password</label>
+              <input
+                id="reg-password-confirm"
+                type="password"
+                required
+                minLength={6}
+                placeholder="Ulangi password"
+                value={regPasswordConfirm}
+                onChange={(e) => setRegPasswordConfirm(e.target.value)}
+                autoComplete="new-password"
+              />
+              {regPasswordConfirm && regPassword !== regPasswordConfirm && (
+                <span className="auth-field-hint">Password tidak cocok</span>
+              )}
             </div>
 
             <button type="submit" className="auth-submit-btn" disabled={loading}>
