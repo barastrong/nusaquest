@@ -14,6 +14,15 @@ const playSfx = (ok) => {
   a.play().catch(() => {});
 };
 
+/**
+ * Durasi tampil umpan balik langsung (immediate feedback) per soal.
+ *
+ * Jawaban benar cukup singkat karena user hanya perlu konfirmasi; jawaban SALAH
+ * diperlama supaya teks "Jawaban benar: ..." sempat terbaca — inilah bagian yang
+ * memperkuat retensi pemahaman.
+ */
+const FEEDBACK_DURATION_MS = { correct: 900, wrong: 2500 };
+
 export default function QuizGame({ onBack, provinceSlug, provinceName }) {
   const {
     user,
@@ -78,6 +87,9 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     playSfx(correct);
     setFeedback({ correct, show: true });
 
+    // Jeda sebelum pindah soal mengikuti jenis jawaban (lihat FEEDBACK_DURATION_MS)
+    const feedbackMs = correct ? FEEDBACK_DURATION_MS.correct : FEEDBACK_DURATION_MS.wrong;
+
     if (correct) {
       const pieces = Array.from({ length: 24 }, (_, j) => ({
         id: j,
@@ -131,7 +143,7 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
         setAnswered(false);
         setSelectedAnswer(null);
       }
-    }, 900);
+    }, feedbackMs);
   };
 
   const resetQuiz = () => {
@@ -275,7 +287,10 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
         </div>
       </div>
 
-      <div className={`quiz-feedback quiz-feedback-${feedback?.correct ? 'correct' : 'wrong'} ${feedback?.show ? 'show' : ''}`}>
+      <div
+        className={`quiz-feedback quiz-feedback-${feedback?.correct ? 'correct' : 'wrong'} ${feedback?.show ? 'show' : ''}`}
+        style={{ '--qf-duration': `${feedback?.correct ? FEEDBACK_DURATION_MS.correct : FEEDBACK_DURATION_MS.wrong}ms` }}
+      >
         <div className="qf-icon">
           {feedback?.correct ? <FiCheckCircle /> : <FiXCircle />}
         </div>

@@ -32,7 +32,7 @@ function playDropSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
     osc.start(audioCtx.currentTime);
     osc.stop(audioCtx.currentTime + 0.12);
-  } catch {}
+  } catch { /* audio opsional — abaikan bila Web Audio tidak tersedia */ }
 }
 
 const GRID = 3; // 3×3 = 9 kepingan — gambar lebih jelas, tidak terpotong
