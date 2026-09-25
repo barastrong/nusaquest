@@ -4,7 +4,7 @@ import { FiKey, FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/
 import { useAuth } from '../../../context/AuthContext';
 import { getProvinceQuizProgress } from '../../../utils/localStorage';
 
-const nameToSlug = {SXDDSAD
+const nameToSlug = {
   'Aceh': 'aceh', 'Sumatera Utara': 'sumatera-utara', 'Sumatera Barat': 'sumatera-barat',
   'Riau': 'riau', 'Kepulauan Riau': 'kepulauan-riau', 'Jambi': 'jambi',
   'Sumatera Selatan': 'sumatera-selatan', 'Bengkulu': 'bengkulu', 'Lampung': 'lampung',
