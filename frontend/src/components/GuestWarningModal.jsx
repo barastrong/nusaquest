@@ -30,7 +30,7 @@ export default function GuestWarningModal({ isOpen, onClose, onProceed, onRegist
 
         <h2 className="gwm-title">Petualangan Mode Tamu</h2>
         <p className="gwm-subtitle">
-          Halo, Penjelajah Cilik! Kamu sedang menjelajah kebudayaan Indonesia dalam <strong>Mode Tamu</strong>{provinceName ? ` di ${provinceName}` : ''}.
+          Kamu sedang menjelajah kebudayaan Indonesia dalam <strong>Mode Tamu</strong>{provinceName ? ` di ${provinceName}` : ''}.
         </p>
 
         <div className="gwm-points">
@@ -41,7 +41,7 @@ export default function GuestWarningModal({ isOpen, onClose, onProceed, onRegist
             <div className="gwm-point-text">
               <span className="gwm-point-head">Batas 5 Provinsi</span>
               <span className="gwm-point-desc">
-                Kamu dapat membuka dan memainkan mini game hingga maksimal <strong>5 provinsi</strong>.
+                Buka dan mainkan tantangan budaya hingga maksimal <strong>5 provinsi</strong>.
               </span>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function GuestWarningModal({ isOpen, onClose, onProceed, onRegist
             <div className="gwm-point-text">
               <span className="gwm-point-head">Progres Tersimpan Sementara</span>
               <span className="gwm-point-desc">
-                Kunci, skor kuis, dan provinsi yang kamu buka tersimpan di browser perangkat ini.
+                Kunci, skor kuis, dan data provinsi tersimpan di browser perangkat ini.
               </span>
             </div>
           </div>
@@ -63,9 +63,9 @@ export default function GuestWarningModal({ isOpen, onClose, onProceed, onRegist
               <FiShield size={18} />
             </div>
             <div className="gwm-point-text">
-              <span className="gwm-point-head">Simpan Selamanya dengan Akun Gratis</span>
+              <span className="gwm-point-head">Simpan Permanen dengan Akun Gratis</span>
               <span className="gwm-point-desc">
-                Daftar akun gratis kapan saja untuk membuka <strong>seluruh 38 provinsi</strong>. Seluruh progres Mode Tamu akan <strong>otomatis tersinkronisasi</strong> ke akun barumu tanpa hilang!
+                Daftar akun gratis kapan saja untuk membuka <strong>seluruh 38 provinsi</strong>. Progres otomatis tersinkronisasi!
               </span>
             </div>
           </div>

@@ -386,7 +386,20 @@ nav.scrolled {
 
   .nav-logo    { font-size: 18px; }
   .nav-divider { display: none; }
-  .nav-hamburger { display: flex; margin-left: auto; }
+
+  /* Theme toggle & hamburger di mobile */
+  .theme-toggle {
+    display: flex;
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+
+  .nav-hamburger {
+    display: flex;
+    margin-left: 4px;
+  }
 
   /* Sembunyikan auth desktop pada mobile */
   .nav-auth-desktop {
@@ -549,33 +562,6 @@ nav.scrolled {
     margin-top: 4px;
     text-align: center;
     padding: 13px 16px;
-  }
-
-  /* Theme toggle desktop - sembunyikan di mobile */
-  .theme-toggle-desktop {
-    display: none;
-  }
-
-  /* Theme button mobile - tampilkan di dropdown */
-  .theme-btn-mobile {
-    display: block;
-    margin-top: 4px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.58);
-    background: transparent;
-  }
-  .theme-btn-mobile:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.06);
-  }
-  [data-theme="light"] .theme-btn-mobile {
-    border-top-color: rgba(0, 0, 0, 0.08);
-    color: rgba(30, 20, 5, 0.52);
-  }
-  [data-theme="light"] .theme-btn-mobile:hover {
-    color: rgba(30, 20, 5, 0.92);
-    background: rgba(0, 0, 0, 0.05);
   }
 
   [data-theme="light"] .nav-btn            { color: rgba(30, 20, 5, 0.52); }
