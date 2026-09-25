@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiClock, FiRotateCw, FiAward, FiCompass, FiUserPlus } from 'react-icons/fi';
+import { FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import QuizGame from './QuizGame';
 import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
-import { getUserData, GUEST_MAX_PROVINCES } from '../../utils/localStorage';
+import { getUserData } from '../../utils/localStorage';
 import { useAuth } from '../../context/AuthContext';
 import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/games.css';
@@ -112,27 +112,6 @@ export default function GamesPage() {
               <span className="games-province-name">{province.name}</span>
             </div>
           )}
-        </div>
-      )}
-
-      {!activeGame && !user && (
-        <div className="guest-mode-banner">
-          <div className="gmb-info">
-            <FiCompass className="gmb-icon" />
-            <div>
-              <span className="gmb-badge">Mode Tamu</span>
-              <span>
-                Sesi bermain dalam Mode Tamu (kuota maksimal <strong>{GUEST_MAX_PROVINCES} provinsi</strong>). Buat akun gratis sekarang agar progres dan pencapaianmu tersimpan permanen selamanya!
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="gmb-register-btn"
-            onClick={() => openAuthModal('register')}
-          >
-            <FiUserPlus /> Buat Akun Gratis
-          </button>
         </div>
       )}
 

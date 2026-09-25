@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
-import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar, FiCompass, FiUserPlus } from 'react-icons/fi';
+import { FiKey, FiInfo, FiX, FiAward, FiMap, FiGift, FiSearch, FiUnlock, FiBookOpen, FiStar } from 'react-icons/fi';
 import { getUserData, unlockRegion as unlockRegionLS, getDeviceId, syncFromBackend, GUEST_MAX_PROVINCES } from '../../utils/localStorage';
 import { userApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,7 @@ import MapSVG from './/Map/MapSVG';
 import RegionPopup from './Map/RegionPopup';
 import LockedRegionPopup from './Map/LockedRegionPopup';
 import UnlockAnimation from './Map/UnlockAnimation';
+import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/map.css';
 import '../../styles/guestModal.css';
 
@@ -64,6 +65,9 @@ export default function MapPage() {
   const [lockedRegionKeyCost, setLockedRegionKeyCost] = useState(1);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [unlockAnim, setUnlockAnim] = useState(null); // { name, difficulty, color }
+  const [isGuestWarningOpen, setIsGuestWarningOpen] = useState(false);
+  const [pendingRegion, setPendingRegion] = useState(null);
+  const [guestWarningProvince, setGuestWarningProvince] = useState(null);
 
   // Load from localStorage and sync latest from backend on mount or when user changes
   useEffect(() => {
@@ -103,11 +107,7 @@ export default function MapPage() {
     }, 600);
   };
 
-  const handleRegionClick = (regionId, regionName, centerX, centerY) => {
-    // Reset locked popup if open
-    setLockedRegionNamePopup(null);
-    setLockedRegionIdPopup(null);
-
+  const executeRegionClick = (regionId, regionName, centerX, centerY) => {
     setSelectedRegionId(regionId);
     setSelectedRegionName(regionName);
     setIsRegionSelected(true);
@@ -121,14 +121,83 @@ export default function MapPage() {
     setPanY(offsetY);
   };
 
-  const handleLockedRegionClick = (regionId, regionName) => {
-    const { unlockCost } = getDifficultyInfo(regionId);
+  const executeLockedRegionClick = (regionId, regionName, unlockCost) => {
     setSelectedRegionName(null);
     setSelectedRegionId(null);
     setLockedRegionNamePopup(regionName);
     setLockedRegionIdPopup(regionId);
-    setLockedRegionKeyCost(unlockCost);
+    setLockedRegionKeyCost(unlockCost || getDifficultyInfo(regionId).unlockCost);
     setIsRegionSelected(true);
+  };
+
+  const handleRegionClick = (regionId, regionName, centerX, centerY) => {
+    // Reset locked popup if open
+    setLockedRegionNamePopup(null);
+    setLockedRegionIdPopup(null);
+
+    if (!user) {
+      setPendingRegion({
+        type: 'unlocked',
+        regionId,
+        regionName,
+        centerX,
+        centerY,
+      });
+      setGuestWarningProvince(regionName);
+      setIsGuestWarningOpen(true);
+      return;
+    }
+
+    executeRegionClick(regionId, regionName, centerX, centerY);
+  };
+
+  const handleLockedRegionClick = (regionId, regionName) => {
+    const { unlockCost } = getDifficultyInfo(regionId);
+    if (!user) {
+      setPendingRegion({
+        type: 'locked',
+        regionId,
+        regionName,
+        unlockCost,
+      });
+      setGuestWarningProvince(regionName);
+      setIsGuestWarningOpen(true);
+      return;
+    }
+
+    executeLockedRegionClick(regionId, regionName, unlockCost);
+  };
+
+  const handleProceedGuest = () => {
+    setIsGuestWarningOpen(false);
+    if (!pendingRegion) return;
+
+    if (pendingRegion.type === 'unlocked') {
+      executeRegionClick(
+        pendingRegion.regionId,
+        pendingRegion.regionName,
+        pendingRegion.centerX,
+        pendingRegion.centerY
+      );
+    } else if (pendingRegion.type === 'locked') {
+      executeLockedRegionClick(
+        pendingRegion.regionId,
+        pendingRegion.regionName,
+        pendingRegion.unlockCost
+      );
+    }
+    setPendingRegion(null);
+  };
+
+  const handleRegisterFromGuest = () => {
+    setIsGuestWarningOpen(false);
+    setPendingRegion(null);
+    openAuthModal('register');
+  };
+
+  const handleCloseGuestWarning = () => {
+    setIsGuestWarningOpen(false);
+    setPendingRegion(null);
   };
 
   const handleUnlockRegion = async (regionId, keyCost) => {
@@ -193,27 +262,6 @@ export default function MapPage() {
             <span className="map-progress-text">{unlockedCount}/{TOTAL_PROVINCES} Provinsi</span>
           </div>
         </div>
-
-        {!user && (
-          <div className="guest-mode-banner">
-            <div className="gmb-info">
-              <FiCompass className="gmb-icon" />
-              <div>
-                <span className="gmb-badge">Mode Tamu</span>
-                <span>
-                  Kamu telah membuka <strong>{unlockedCount}/{GUEST_MAX_PROVINCES}</strong> provinsi kuota tamu. Buat akun gratis untuk membuka semua 38 provinsi!
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="gmb-register-btn"
-              onClick={() => openAuthModal('register')}
-            >
-              <FiUserPlus /> Buat Akun Gratis
-            </button>
-          </div>
-        )}
 
         {isFullMapComplete && (
           <div className="fullmap-complete-banner">
@@ -353,6 +401,15 @@ export default function MapPage() {
           onDone={() => setUnlockAnim(null)}
         />
       )}
+
+      {/* Guest Mode Warning Modal on Map Click */}
+      <GuestWarningModal
+        isOpen={isGuestWarningOpen}
+        onClose={handleCloseGuestWarning}
+        onProceed={handleProceedGuest}
+        onRegister={handleRegisterFromGuest}
+        provinceName={guestWarningProvince}
+      />
     </div>
   );
 }
