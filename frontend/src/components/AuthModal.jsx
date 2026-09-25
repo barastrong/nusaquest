@@ -125,10 +125,30 @@ export default function AuthModal() {
 
   const handleOtpChange = (index, value) => {
     const cleanVal = value.replace(/\D/g, '');
-    if (!cleanVal && value !== '') return;
+
+    // Jika yang masuk lebih dari 1 digit (misal paste via keyboard bar/autofill/klik kanan)
+    if (cleanVal.length > 1) {
+      const pastedDigits = cleanVal.slice(0, 6);
+      const newDigits = ['', '', '', '', '', ''];
+      for (let i = 0; i < pastedDigits.length; i++) {
+        newDigits[i] = pastedDigits[i];
+      }
+      setOtpDigits(newDigits);
+      setError('');
+      const nextIdx = Math.min(pastedDigits.length, 5);
+      otpInputRefs.current[nextIdx]?.focus();
+      return;
+    }
+
+    if (!cleanVal && value !== '') {
+      const newDigits = [...otpDigits];
+      newDigits[index] = '';
+      setOtpDigits(newDigits);
+      return;
+    }
 
     const newDigits = [...otpDigits];
-    newDigits[index] = cleanVal.slice(-1);
+    newDigits[index] = cleanVal;
     setOtpDigits(newDigits);
     setError('');
 
@@ -154,12 +174,13 @@ export default function AuthModal() {
 
   const handleOtpPaste = (e) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    e.stopPropagation();
+    const pastedData = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 6);
     if (!pastedData) return;
 
-    const newDigits = [...otpDigits];
-    for (let i = 0; i < 6; i++) {
-      newDigits[i] = pastedData[i] || '';
+    const newDigits = ['', '', '', '', '', ''];
+    for (let i = 0; i < pastedData.length; i++) {
+      newDigits[i] = pastedData[i];
     }
     setOtpDigits(newDigits);
     setError('');
@@ -361,11 +382,13 @@ export default function AuthModal() {
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  maxLength={1}
+                  maxLength={6}
                   className={`otp-digit-input ${digit ? 'filled' : ''}`}
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                  onPaste={handleOtpPaste}
+                  onFocus={(e) => e.target.select()}
                   autoComplete="one-time-code"
                 />
               ))}
