@@ -1144,20 +1144,20 @@
   100% { transform: scale(1) rotate(0); }
 }
 
-/* Confetti burst for correct answers */
+/* Confetti burst — bottom to top (firework style) */
 .qf-confetti {
   position: fixed;
-  top: 42%;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
   z-index: 9997;
   pointer-events: none;
-  animation: qfConfetti 1.2s ease-out forwards;
+  animation: qfConfetti 1.4s cubic-bezier(.25,.46,.45,.94) forwards;
 }
 @keyframes qfConfetti {
-  0%   { opacity: 1; transform: translateY(0) rotate(0); }
-  100% { opacity: 0; transform: translateY(-140px) rotate(540deg); }
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--drift, 0px), -100vh) rotate(540deg); }
 }
 
 /* Card shake on wrong answer */

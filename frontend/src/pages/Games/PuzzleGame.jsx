@@ -109,6 +109,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
   const [showHint, setShowHint] = useState(false);
   const [checkResult, setCheckResult] = useState(null);
   const [allDone, setAllDone] = useState(false);
+  const [confetti, setConfetti] = useState([]);
   const [rewardToast, setRewardToast] = useState(null); // { keys, total }
   const [alreadyClaimed] = useState(() => provinceSlug ? hasClaimedReward(provinceSlug) : false);
 
@@ -284,11 +285,25 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
       Math.abs(p.xPos - p.correctX) < 4 && Math.abs(p.yPos - p.correctY) < 4
     );
     playSfx(correct);
+    if (correct) {
+      const pieces = Array.from({ length: 50 }, (_, j) => ({
+        id: j,
+        x: Math.random() * 100,
+        delay: Math.random() * 0.4,
+        color: ['#6fcf97','#f7b24f','#e57373','#5a9bd5','#c89b3c','#f472b6','#38bdf8'][j % 7],
+        drift: (Math.random() - 0.5) * 120,
+        size: 5 + Math.random() * 6,
+        round: Math.random() > 0.5,
+      }));
+      setConfetti(pieces);
+      setTimeout(() => setConfetti([]), 2000);
+    }
     setCheckResult(correct ? 'correct' : 'wrong');
   }
 
   async function handleCorrectNext() {
     setCheckResult(null);
+    setConfetti([]);
 
     if (round + 1 < TOTAL_ROUNDS) {
       setRound(r => r + 1);
@@ -322,6 +337,7 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
 
   function handleWrongRetry() {
     setCheckResult(null);
+    setConfetti([]);
   }
 
   function handleRestart() {
@@ -462,6 +478,23 @@ export default function PuzzleGame({ onBack, provinceSlug, province }) {
           </div>
         </div>
       )}
+
+      {/* Confetti */}
+      {confetti.map(c => (
+        <span
+          key={c.id}
+          className="qf-confetti"
+          style={{
+            left: `${c.x}%`,
+            background: c.color,
+            animationDelay: `${c.delay}s`,
+            width: `${c.size}px`,
+            height: `${c.size}px`,
+            borderRadius: c.round ? '50%' : '2px',
+            '--drift': `${c.drift}px`,
+          }}
+        />
+      ))}
 
       {/* Check Result Modal */}
       {checkResult && (

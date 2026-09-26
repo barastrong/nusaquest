@@ -107,11 +107,14 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
     const feedbackMs = correct ? FEEDBACK_DURATION_MS.correct : FEEDBACK_DURATION_MS.wrong;
 
     if (correct) {
-      const pieces = Array.from({ length: 24 }, (_, j) => ({
+      const pieces = Array.from({ length: 50 }, (_, j) => ({
         id: j,
         x: Math.random() * 100,
-        delay: Math.random() * 0.5,
-        color: ['#6fcf97','#f7b24f','#e57373','#5a9bd5','#c89b3c'][j % 5],
+        delay: Math.random() * 0.4,
+        color: ['#6fcf97','#f7b24f','#e57373','#5a9bd5','#c89b3c','#f472b6','#38bdf8'][j % 7],
+        drift: (Math.random() - 0.5) * 120,
+        size: 5 + Math.random() * 6,
+        round: Math.random() > 0.5,
       }));
       setConfetti(pieces);
     }
@@ -322,7 +325,15 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
         <span
           key={c.id}
           className="qf-confetti"
-          style={{ left: `${c.x}%`, background: c.color, animationDelay: `${c.delay}s` }}
+          style={{
+            left: `${c.x}%`,
+            background: c.color,
+            animationDelay: `${c.delay}s`,
+            width: `${c.size}px`,
+            height: `${c.size}px`,
+            borderRadius: c.round ? '50%' : '2px',
+            '--drift': `${c.drift}px`,
+          }}
         />
       ))}
 
