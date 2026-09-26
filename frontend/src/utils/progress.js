@@ -33,6 +33,14 @@ export const EMPTY_PROVINCE_STAT = {
   lastPlayedAt: null,
 };
 
+/**
+ * Jumlah soal kuis per sesi. Backend melayani sejumlah ini per permintaan
+ * (fallback ke jumlah tersedia bila provinsi punya soal lebih sedikit).
+ * Dipakai bersama oleh QuizGame (permintaan soal) dan GamesPage (penyebut
+ * "Skor Terbaik" dan deskripsi card) agar tidak ada angka yang diketik dua kali.
+ */
+export const QUIZ_QUESTION_COUNT = 10;
+
 /** Normalisasi satu statistik provinsi ke bentuk camelCase */
 export function mapQuizStat(stat = {}) {
   const source = asObject(stat);
@@ -86,20 +94,62 @@ export function getProvinceStat(progress, provinceSlug, gameType = 'quiz') {
   const data = progress || EMPTY_PROGRESS;
   const stat = mapQuizStat(data.quizStats?.[provinceSlug] || {});
   const completedTypes = getCompletedGameTypes(data, provinceSlug);
-  const isCompletedForType = gameType ? completedTypes.includes(gameType) : completedTypes.length > 0;
 
-  const attemptsForType = gameType === 'puzzle' ? stat.puzzleAttempts : stat.quizAttempts;
-  const highScoreForType = gameType === 'puzzle' ? stat.puzzleHighScore : stat.quizHighScore;
-  const attempts = Math.max(stat.attempts, attemptsForType, isCompletedForType ? 1 : 0);
-  const highScore = Math.max(stat.highScore, highScoreForType);
+  // Tanpa tipe game: perilaku lama — campuran quiz + puzzle (untuk tampilan umum)
+  if (!gameType) {
+    const anyCompleted = completedTypes.length > 0;
+    const attempts = Math.max(stat.attempts, anyCompleted ? 1 : 0);
+    return {
+      isCompleted: Boolean(stat.passed || anyCompleted),
+      attempts,
+      highScore: stat.highScore,
+      lastScore: stat.lastScore,
+      hasAttempted: attempts > 0,
+      lastPlayedAt: stat.lastPlayedAt,
+    };
+  }
+
+  const isPuzzle = gameType === 'puzzle';
+  const isCompletedForType = completedTypes.includes(gameType);
+  const attemptsForType = isPuzzle ? stat.puzzleAttempts : stat.quizAttempts;
+  const highScoreForType = isPuzzle ? stat.puzzleHighScore : stat.quizHighScore;
+  const hasTypeData = attemptsForType > 0 || highScoreForType > 0;
+
+  // `stat.passed` / `stat.attempts` / `stat.highScore` di backend adalah gabungan
+  // quiz + puzzle. Dulu angka gabungan ini ikut dipakai untuk tiap card sehingga
+  // skor Puzzle (angkanya jauh lebih besar) tampil di card Quiz — "Skor Terbaik"
+  // quiz tampak tidak pernah ter-update. Sekarang per-tipe saja.
+  //
+  // Satu-satunya pengecualian: data lama yang belum punya pemisahan per tipe
+  // (quiz_high_score / puzzle_high_score). Bila hanya SATU tipe yang punya data,
+  // nilai gabungan pasti milik tipe itu, jadi aman dipakai.
+  const otherTypeHasData = isPuzzle
+    ? stat.quizAttempts > 0 || stat.quizHighScore > 0
+    : stat.puzzleAttempts > 0 || stat.puzzleHighScore > 0;
+  const inheritOverall = !hasTypeData && !otherTypeHasData && !isCompletedForType
+    ? 'none'
+    : !otherTypeHasData ? 'this-type-only' : 'per-type';
+
+  const attemptsSource =
+    inheritOverall === 'this-type-only' ? stat.attempts
+    : inheritOverall === 'per-type' ? attemptsForType
+    : 0;
+  const highScoreSource =
+    inheritOverall === 'this-type-only' ? stat.highScore
+    : inheritOverall === 'per-type' ? highScoreForType
+    : 0;
+
+  const attempts = Math.max(attemptsSource, isCompletedForType ? 1 : 0);
+  const typePassed = isCompletedForType
+    || (stat.passed && inheritOverall === 'this-type-only' && attemptsSource > 0);
 
   return {
-    isCompleted: Boolean(stat.passed || isCompletedForType),
+    isCompleted: Boolean(typePassed),
     attempts,
-    highScore,
-    lastScore: stat.lastScore,
+    highScore: highScoreSource,
+    lastScore: attempts > 0 ? stat.lastScore : 0,
     hasAttempted: attempts > 0,
-    lastPlayedAt: stat.lastPlayedAt,
+    lastPlayedAt: attempts > 0 ? stat.lastPlayedAt : null,
   };
 }
 

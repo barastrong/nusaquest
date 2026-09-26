@@ -6,6 +6,7 @@ import PuzzleGame from './PuzzleGame';
 import { provinceApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import GuestWarningModal from '../../components/GuestWarningModal';
+import { QUIZ_QUESTION_COUNT } from '../../utils/progress';
 import '../../styles/games.css';
 import '../../styles/guestModal.css';
 
@@ -160,8 +161,8 @@ export default function GamesPage() {
             <div className="gsc-body">
               <div className="gsc-desc">
                 {province
-                  ? `Jawab 5 pertanyaan tentang ${province.name}. Jawab semua dengan benar untuk klaim reward!`
-                  : 'Jawab 10 pertanyaan tentang budaya, sejarah, dan tradisi Indonesia.'}
+                  ? `Jawab ${QUIZ_QUESTION_COUNT} pertanyaan tentang ${province.name}. Jawab semua dengan benar untuk klaim reward!`
+                  : `Jawab ${QUIZ_QUESTION_COUNT} pertanyaan tentang budaya, sejarah, dan tradisi Indonesia.`}
               </div>
               <div className="gsc-stats">
                 <div className="gsc-stat">
@@ -170,7 +171,7 @@ export default function GamesPage() {
                 </div>
                 <div className="gsc-stat">
                   <span className="gsc-stat-value highlight-gold">
-                    <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/5` : '-'}
+                    <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/${QUIZ_QUESTION_COUNT}` : '-'}
                   </span>
                   <span className="gsc-stat-label">Skor Terbaik</span>
                 </div>
@@ -182,7 +183,7 @@ export default function GamesPage() {
                 </div>
               </div>
               <div className="gsc-pills">
-                <span className="gsc-pill">{province ? '5 Soal' : '10 Soal'}</span>
+                <span className="gsc-pill">{`${QUIZ_QUESTION_COUNT} Soal`}</span>
                 <span className="gsc-pill">Pilihan Ganda</span>
                 <span className="gsc-pill">Skor Akhir</span>
               </div>
