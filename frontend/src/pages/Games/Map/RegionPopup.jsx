@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { getDifficultyInfo } from '../../../utils/difficulty';
+import { QUIZ_QUESTION_COUNT } from '../../../utils/progress';
 import { FiKey, FiCheckCircle, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -78,7 +79,7 @@ export default function RegionPopup({ regionName, regionId, onClose }) {
               <div className="ppt-stat-col">
                 <span className="ppt-stat-label">Skor Tertinggi</span>
                 <span className="ppt-stat-val highlight-gold">
-                  <FiAward className="stat-award-icon" /> {progress.attempts > 0 ? `${progress.highScore}/5` : '-'}
+                  <FiAward className="stat-award-icon" /> {progress.attempts > 0 ? `${progress.highScore}/${QUIZ_QUESTION_COUNT}` : '-'}
                 </span>
               </div>
             </div>

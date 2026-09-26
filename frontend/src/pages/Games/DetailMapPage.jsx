@@ -7,6 +7,7 @@ import { HiOutlineOfficeBuilding, HiOutlineUsers, HiOutlineMap, HiOutlineChatAlt
 import { FiKey, FiCheckCircle, FiLock, FiClock, FiRotateCw, FiAward } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../../utils/difficulty';
+import { QUIZ_QUESTION_COUNT } from '../../utils/progress';
 import GuestWarningModal from '../../components/GuestWarningModal';
 import '../../styles/detailmap.css';
 
@@ -313,7 +314,7 @@ export default function DetailMapPage() {
               <div className="dpc-stat-item">
                 <span className="dpc-stat-label">Skor Tertinggi Quiz</span>
                 <span className="dpc-stat-value highlight-gold">
-                  <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/5` : '-'}
+                  <FiAward className="stat-award-icon" /> {quizProgress.attempts > 0 ? `${quizProgress.highScore}/${QUIZ_QUESTION_COUNT}` : '-'}
                 </span>
               </div>
               <div className="dpc-stat-item">

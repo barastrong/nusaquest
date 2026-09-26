@@ -4,6 +4,7 @@ import { ClipLoader } from 'react-spinners';
 import { gameApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { getDifficultyInfo } from '../../utils/difficulty';
+import { QUIZ_QUESTION_COUNT } from '../../utils/progress';
 import successSfx from '../../sounds/success.mp3';
 import failedSfx from '../../sounds/failed.mp3';
 
@@ -23,9 +24,8 @@ const playSfx = (ok) => {
  */
 const FEEDBACK_DURATION_MS = { correct: 900, wrong: 2500 };
 
-// Konstanta kuis — target 10 soal acak per sesi kuis agar retensi lebih kuat
-// dan setiap percobaan menantang. Backend fallback ke jumlah tersedia bila kurang.
-const QUIZ_QUESTION_COUNT = 10;
+// Konstanta kuis — QUIZ_QUESTION_COUNT diimpor dari utils/progress agar
+// GamesPage (penyebut "Skor Terbaik", deskripsi card) memakai angka yang sama.
 
 /**
  * PASS_THRESHOLD konsisten di 60% (bukan 60% untuk 5 soal tapi 70% untuk 10 soal).
@@ -150,7 +150,7 @@ export default function QuizGame({ onBack, provinceSlug, provinceName }) {
           attempts: recordedStat?.attempts ?? (prevProgress.attempts || 0) + 1,
           highScore: recordedStat?.high_score ?? Math.max(prevProgress.highScore || 0, finalScore),
           isCompleted: Boolean(recordedStat?.passed || prevProgress.isCompleted || passed),
-          isNewRecord: prevProgress.attempts > 0 && finalScore > (prevProgress.highScore || 0),
+          isNewRecord: finalScore > (prevProgress.highScore || 0),
         });
 
         setFinished(true);
