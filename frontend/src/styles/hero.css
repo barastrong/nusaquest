@@ -134,6 +134,8 @@
   .hero-title { font-size: clamp(32px, 8vw, 44px); margin-bottom: 12px; }
   .hero-desc { font-size: 14px; margin-bottom: 28px; }
   .hero-actions { gap: 10px; margin-bottom: 28px; }
+  .hero-actions .btn-gold,
+  .hero-actions .btn-outline { flex: 1; text-align: center; }
   .hero-stats { gap: 20px; padding-top: 24px; }
   .stat-num { font-size: 24px; }
   .stat-label { font-size: 11px; }
